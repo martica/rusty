@@ -6,6 +6,16 @@ fn test_tokenize() {
 }
 
 #[test]
+fn test_tokenize_empty() {
+    assert tokenize( ~"" ) == ~[];
+}
+
+#[test]
+fn test_tokenize_no_spaces() {
+    assert tokenize( ~"one" ) == ~[~"one"];
+}
+
+#[test]
 fn test_addspaces() {
     assert addspaces( ~"(1 2 3)" ) == ~" ( 1 2 3 ) "
 }

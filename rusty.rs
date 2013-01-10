@@ -40,12 +40,35 @@ fn tokenize( input:&str ) -> ~[~str] {
 }
 
 enum Expression {
-    Value(int),
+    Int(int),
+    Float(float),
     Symbol(~str),
     List(~[Expression])
+}
+
+fn print_expression( expression:Expression ) {
+    fn print_expr( expression:Expression ) {
+        match expression {
+            Int(number) => { io::print( fmt!("%d", number) ) }
+            Float(number) => { io::print( fmt!("%f", number) ) }
+            Symbol(string) => { io::print( string ) }
+            List(expressions) => {
+                io::print("(");
+                for expressions.init().each |&expression| {
+                    print_expr( expression );
+                    io::print(", ");
+                }
+                print_expr( expressions.last() );
+                io::print(")");
+            }
+        }
     }
+    print_expr(expression);
+    io::println(~"");
+}
 
 fn main() {
-    let Blah:Expression = List(~[Value(1), List(~[Value(1), Symbol(~"xyz")])]);
+    let blah:Expression = List(~[Int(1), List(~[Float(1.0), Symbol(~"xyz")])]);
+    print_expression(blah);
     io::println( "(begin 1 2)" )
 }

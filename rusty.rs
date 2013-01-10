@@ -25,7 +25,7 @@ fn addspaces( input:&str ) -> ~str {
 }
 
 fn tokenize( input:&str ) -> ~[~str] {
-    str::split_str_nonempty(addspaces(input), " ")
+    str::words(addspaces(input))
 }
 
 enum Expression {

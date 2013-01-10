@@ -39,6 +39,40 @@ fn tokenize( input:&str ) -> ~[~str] {
     str::words(pad_parentheses(input))
 }
 
+#[test]
+fn test_that_atom_can_read_a_symbol() {
+    match atom(~"hello") {
+        Symbol(~"hello") => (),
+            _ => fail
+    }
+}
+
+#[test]
+fn test_that_atom_can_read_an_int() {
+    match atom(~"10") {
+        Int(10) => (),
+            _ => fail
+    }
+}
+
+#[test]
+fn test_that_atom_can_read_a_float() {
+    match atom(~"10.1") {
+        Float(10.1) => (),
+            _ => fail
+    }
+}
+
+fn atom( input:~str ) -> Expression {
+    match int::from_str(input) {
+        Some(number) => Int(number),
+        None => match float::from_str(input) {
+            Some(number) => Float(number),
+            None => Symbol(input)
+        }
+    }
+}
+
 enum Expression {
     Int(int),
     Float(float),

@@ -16,16 +16,27 @@ fn test_tokenize_no_spaces() {
 }
 
 #[test]
-fn test_addspaces() {
-    assert addspaces( ~"(1 2 3)" ) == ~" ( 1 2 3 ) "
+fn test_pad_parentheses() {
+    assert pad_parentheses( ~"(1 2 3)" ) == ~" ( 1 2 3 ) "
 }
 
-fn addspaces( input:&str ) -> ~str {
+#[test]
+fn test_pad_parentheses_empty() {
+    assert pad_parentheses( ~"" ) == ~""
+}
+
+#[test]
+fn test_pad_parentheses_one() {
+    assert pad_parentheses( ~"(" ) == ~" ( ";
+    assert pad_parentheses( ~")" ) == ~" ) ";
+}
+
+fn pad_parentheses( input:&str ) -> ~str {
     str::replace(str::replace(input, ")", " ) "), "(", " ( ")
 }
 
 fn tokenize( input:&str ) -> ~[~str] {
-    str::words(addspaces(input))
+    str::words(pad_parentheses(input))
 }
 
 enum Expression {

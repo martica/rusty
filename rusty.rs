@@ -129,37 +129,28 @@ enum Expression {
     List(~[Expression])
 }
 
-fn print_expression( expression:Expression ) {
-    fn print_expr( expression:Expression ) {
-        match expression {
-            Int(number) => { io::print( fmt!("%d", number) ) }
-            Float(number) => { 
-                if number == (number as int) as float {
-                    io::print( fmt!("%.1f", number) )
-                } else {
-                    io::print( fmt!("%f", number) )
-                }
-            }
-            Symbol(string) => { io::print( string ) }
-            List(expressions) => {
-                io::print("(");
-                for expressions.init().each |&expression| {
-                    print_expr( expression );
-                    io::print(" ");
-                }
-                print_expr( expressions.last() );
-                io::print(")");
+fn stringify_expression( expression:Expression ) -> ~str {
+    match expression {
+        Int(number) => { fmt!("%d", number) }
+        Float(number) => { 
+            if number == (number as int) as float {
+                fmt!("%.1f", number)
+            } else {
+                fmt!("%f", number)
             }
         }
+        Symbol(string) => { string }
+        List(expressions) => {
+            let strings = expressions.map( | &expr | {stringify_expression(expr)} );
+            ~"(" + strings.foldl(~"", |&x, &y| { x + ~" " + y } ).trim() + ~")"
+        }
     }
-    print_expr(expression);
-    io::println(~"");
 }
 
 fn main() {
-    print_expression( parse( tokenize( "(1 2 3 (1 2 3))" ) ) );
-    print_expression( parse( tokenize( "((1 2) 3 (1 2 3))" ) ) );
+    io::println(stringify_expression( parse( tokenize( "(1 2 3 (1 2 3))" ) ) ));
+    io::println(stringify_expression( parse( tokenize( "((1 2) 3 (1 2 3))" ) ) ));
     let blah:Expression = List(~[Int(1), List(~[Float(1.0), Symbol(~"xyz")])]);
-    print_expression(blah);
+    io::println(stringify_expression(blah));
     io::println( "(begin 1 2)" )
 }

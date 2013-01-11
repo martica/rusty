@@ -133,7 +133,13 @@ fn print_expression( expression:Expression ) {
     fn print_expr( expression:Expression ) {
         match expression {
             Int(number) => { io::print( fmt!("%d", number) ) }
-            Float(number) => { io::print( fmt!("%f", number) ) }
+            Float(number) => { 
+                if number == (number as int) as float {
+                    io::print( fmt!("%.1f", number) )
+                } else {
+                    io::print( fmt!("%f", number) )
+                }
+            }
             Symbol(string) => { io::print( string ) }
             List(expressions) => {
                 io::print("(");

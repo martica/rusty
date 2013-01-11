@@ -152,6 +152,7 @@ fn print_expression( expression:Expression ) {
 
 fn main() {
     print_expression( parse( tokenize( "(1 2 3 (1 2 3))" ) ) );
+    print_expression( parse( tokenize( "((1 2) 3 (1 2 3))" ) ) );
     let blah:Expression = List(~[Int(1), List(~[Float(1.0), Symbol(~"xyz")])]);
     print_expression(blah);
     io::println( "(begin 1 2)" )

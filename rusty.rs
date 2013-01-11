@@ -73,6 +73,46 @@ fn atom( input:~str ) -> Expression {
     }
 }
 
+#[test]
+fn test_that_parse_can_read_an_atom() {
+    let atom = parse( ~[~"12"] );
+    match atom {
+        Int(12) => (),
+            _ => fail
+    }
+}
+
+#[test]
+fn test_that_parse_can_read_a_list() {
+    let list = parse( ~[ ~"(", ~"1", ~")" ] );
+    match list {
+        List(x) => (),
+            _ => fail ~"not a list"
+    }
+}
+
+fn parse( tokens:~[~str] ) -> Expression {
+    fn subexpression( tokens:~[~str] ) -> (Expression, ~[~str]) {
+        let token = tokens.head();
+        match token {
+            ~"(" => {
+                let mut accumulator:~[Expression] = ~[];
+                let mut remainder = tokens.tail();
+                while remainder.len() > 0 && remainder.head() != ~")" {
+                    let (expr, new_remainder) = subexpression( remainder );
+                    accumulator += [expr];
+                    remainder = new_remainder
+                }
+                (List(accumulator), remainder.tail())
+            }
+            ~")" => fail,
+                _ => (atom(token), tokens.tail())
+        }
+    }
+    let (expression, remainder) = subexpression( tokens );
+    expression
+}
+
 enum Expression {
     Int(int),
     Float(float),
@@ -102,6 +142,7 @@ fn print_expression( expression:Expression ) {
 }
 
 fn main() {
+    print_expression( parse( tokenize( "(1 2 3 (1 2 3))" ) ) );
     let blah:Expression = List(~[Int(1), List(~[Float(1.0), Symbol(~"xyz")])]);
     print_expression(blah);
     io::println( "(begin 1 2)" )

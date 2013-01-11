@@ -118,7 +118,7 @@ fn parse( tokens:~[~str] ) -> Expression {
                 _ => (atom(token), tokens.tail())
         }
     }
-    let (expression, remainder) = subexpression( tokens );
+    let (expression, _remainder) = subexpression( tokens );
     expression
 }
 

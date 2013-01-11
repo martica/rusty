@@ -139,7 +139,7 @@ fn print_expression( expression:Expression ) {
                 io::print("(");
                 for expressions.init().each |&expression| {
                     print_expr( expression );
-                    io::print(", ");
+                    io::print(" ");
                 }
                 print_expr( expressions.last() );
                 io::print(")");

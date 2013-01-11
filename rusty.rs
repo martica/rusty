@@ -86,8 +86,17 @@ fn test_that_parse_can_read_an_atom() {
 fn test_that_parse_can_read_a_list() {
     let list = parse( ~[ ~"(", ~"1", ~")" ] );
     match list {
-        List(x) => (),
+        List([Int(1)]) => (),
             _ => fail ~"not a list"
+    }
+}
+
+#[test]
+fn test_that_parse_can_read_a_nested_list() {
+    let list = parse( ~[ ~"(", ~"1", ~"(", ~"2", ~")", ~"3", ~")" ] );
+    match list {
+        List([Int(1), List([Int(2)]), Int(3)]) => (),
+        _ => fail
     }
 }
 

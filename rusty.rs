@@ -106,22 +106,26 @@ fn parse( program:&str ) -> Expression {
 
 fn read( tokens:~[~str] ) -> Expression {
     fn subexpression( tokens:~[~str] ) -> (Expression, ~[~str]) {
-        let token = tokens.head();
+        let mut remainder = copy tokens;
+        let token = remainder.remove(0);
         match token {
             ~"(" => {
                 let mut accumulator:~[Expression] = ~[];
-                let mut remainder = tokens.tail();
-                while remainder.len() > 0 && remainder.head() != ~")" {
+                while remainder.len() > 0 && remainder[0] != ~")" {
                     let (expr, new_remainder) = subexpression( remainder );
-                    accumulator += [expr];
+                    accumulator.push(expr);
                     remainder = new_remainder
                 }
-                (List(accumulator), remainder.tail())
+                // remove the final close paren, this will fail if the parens
+                // aren't closed properly due to an assert in remove
+                remainder.remove(0);
+                (List(accumulator), remainder)
             }
             ~")" => fail,
-                _ => (atom(token), tokens.tail())
+                _ => (atom(token), remainder)
         }
     }
+
     let (expression, _remainder) = subexpression( tokens );
     expression
 }
@@ -131,7 +135,7 @@ enum Expression {
     Float(float),
     Symbol(~str),
     List(~[Expression])
-}
+} 
 
 fn stringify_expression( expression:Expression ) -> ~str {
     match expression {
@@ -203,9 +207,14 @@ fn test_if_returns_fourth_part_when_if_is_false() {
 fn eval( expression:Expression ) -> Expression {
     match copy expression {
         List( expressions ) => {
-            match expressions.head() {
-                Symbol(~"quote") => expressions.tail().head(),
-                Symbol(~"begin") => eval( expressions.last() ),
+            match expressions[0] {
+                Symbol(~"quote") => {
+                    match expressions {
+                        [Symbol(~"quote"), expr] => expr,
+                        _ => fail
+                    }
+                }
+                Symbol(~"begin") => eval( copy expressions[ expressions.len() - 1] ),
                 Symbol(~"if") => {
                     match expressions {
                         [Symbol(~"if"), test, true_expr, false_expr] => {

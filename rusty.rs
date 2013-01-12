@@ -74,8 +74,8 @@ fn atom( input:~str ) -> Expression {
 }
 
 #[test]
-fn test_that_parse_can_read_an_atom() {
-    let atom = parse( ~[~"12"] );
+fn test_that_read_can_read_an_atom() {
+    let atom = read( ~[~"12"] );
     match atom {
         Int(12) => (),
             _ => fail
@@ -83,8 +83,8 @@ fn test_that_parse_can_read_an_atom() {
 }
 
 #[test]
-fn test_that_parse_can_read_a_list() {
-    let list = parse( ~[ ~"(", ~"1", ~")" ] );
+fn test_that_read_can_read_a_list() {
+    let list = read( ~[ ~"(", ~"1", ~")" ] );
     match list {
         List([Int(1)]) => (),
             _ => fail ~"not a list"
@@ -92,15 +92,19 @@ fn test_that_parse_can_read_a_list() {
 }
 
 #[test]
-fn test_that_parse_can_read_a_nested_list() {
-    let list = parse( ~[ ~"(", ~"1", ~"(", ~"2", ~")", ~"3", ~")" ] );
+fn test_that_read_can_read_a_nested_list() {
+    let list = read( ~[ ~"(", ~"1", ~"(", ~"2", ~")", ~"3", ~")" ] );
     match list {
         List([Int(1), List([Int(2)]), Int(3)]) => (),
         _ => fail
     }
 }
 
-fn parse( tokens:~[~str] ) -> Expression {
+fn parse( program:&str ) -> Expression {
+    read( tokenize( program ) )
+}
+
+fn read( tokens:~[~str] ) -> Expression {
     fn subexpression( tokens:~[~str] ) -> (Expression, ~[~str]) {
         let token = tokens.head();
         match token {
@@ -148,8 +152,8 @@ fn stringify_expression( expression:Expression ) -> ~str {
 }
 
 fn main() {
-    io::println(stringify_expression( parse( tokenize( "(1 2 3 (1 2 3))" ) ) ));
-    io::println(stringify_expression( parse( tokenize( "((1 2) 3 (1 2 3))" ) ) ));
+    io::println(stringify_expression( parse( "(1 2 3 (1 2 3))" ) ));
+    io::println(stringify_expression( parse( "((1 2) 3 (1 2 3))" ) ));
     let blah:Expression = List(~[Int(1), List(~[Float(1.0), Symbol(~"xyz")])]);
     io::println(stringify_expression(blah));
     io::println( "(begin 1 2)" )

@@ -151,6 +151,100 @@ fn stringify_expression( expression:Expression ) -> ~str {
     }
 }
 
+#[test]
+fn test_eval_returns_number_when_passed_number() {
+    let value = eval( Int(1) );
+    match value {
+        Int(1) => (),
+        _ => fail
+    }
+}
+
+#[test]
+fn test_eval_returns_expression_when_passed_quote() {
+    let value = eval( List( ~[ Symbol(~"quote"), List( ~[ Symbol(~"a") ] ) ] ));
+    io::println( stringify_expression( value ) );
+    match value {
+        List( [ Symbol( ~"a" ) ] ) => (),
+        _ => fail
+    }
+}
+
+#[test]
+fn test_eval_returns_last_expression_when_passed_begin() {
+    let expression = parse( ~"(begin 1 2 3)" );
+    let value = eval( expression );
+    match value {
+        Int(3) => (),
+        _ => fail
+    }
+}
+
+#[test]
+fn test_if_returns_third_part_when_if_is_true() {
+    let expression = parse( ~"(if 1 2 3)" );
+    let value = eval( expression );
+    match value {
+        Int(2) => (),
+        _ => fail
+    }
+}  
+
+#[test]
+fn test_if_returns_fourth_part_when_if_is_false() {
+    let expression = parse( ~"(if 0 2 3)" );
+    let value = eval( expression );
+    match value {
+        Int(3) => (),
+        _ => fail
+    }
+}  
+
+fn eval( expression:Expression ) -> Expression {
+    match copy expression {
+        List( expressions ) => {
+            match expressions.head() {
+                Symbol(~"quote") => expressions.tail().head(),
+                Symbol(~"begin") => eval( expressions.last() ),
+                Symbol(~"if") => {
+                    match expressions {
+                        [Symbol(~"if"), test, true_expr, false_expr] => {
+                            if is_truthy( test ) { true_expr } else { false_expr }
+                        }
+                        _ => {fail}
+                    }
+                }
+                _ => expression
+            }
+        }
+        _ => {
+            expression
+        }
+    }
+}
+
+#[test]
+fn test_is_truthy_returns_true_for_non_zero_numbers() {
+    assert is_truthy( Int(1) );
+    assert is_truthy( Int(-1) );
+    assert is_truthy( Float(1.0) );
+    assert is_truthy( Float(-1.0) );
+}
+
+#[test]
+fn test_is_truthy_returns_false_for_zero_numbers() {
+    assert !is_truthy( Int(0) );
+    assert !is_truthy( Float(0.0) );
+}
+
+fn is_truthy( expression:Expression ) -> bool {
+    match expression {
+        Int( number ) => 0 != number,
+        Float( number ) => 0.0 != number,
+        _ => true
+    }
+}
+
 fn main() {
     io::println(stringify_expression( parse( "(1 2 3 (1 2 3))" ) ));
     io::println(stringify_expression( parse( "((1 2) 3 (1 2 3))" ) ));

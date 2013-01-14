@@ -13,10 +13,10 @@ run: bin/rusty
 test: bin/test-rusty
 	bin/test-rusty
 
-bin/test-rusty: rusty.rs environment.rs expression.rs
+bin/test-rusty: rusty.rs environment.rs expression.rs parse.rs
 	$(dir_guard)
 	$(ENV) rustc $(OPTIONS) --test rusty.rs -o bin/test-rusty
 
-bin/rusty: rusty.rs environment.rs expression.rs
+bin/rusty: rusty.rs environment.rs expression.rs parse.rs
 	$(dir_guard)
 	$(ENV) rustc $(OPTIONS) rusty.rs -o bin/rusty

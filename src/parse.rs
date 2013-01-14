@@ -47,6 +47,22 @@ fn test_that_atom_can_read_a_symbol() {
 }
 
 #[test]
+fn test_that_a_plus_sign_becomes_a_symbol() {
+    match atom(~"+") {
+        Symbol(~"+") => (),
+        _ => fail fmt!("+ became: %s", atom(~"+").to_str())
+    }
+}
+
+#[test]
+fn test_that_a_minus_sign_becomes_a_symbol() {
+    match atom(~"-") {
+        Symbol(~"-") => (),
+        _ => fail fmt!("- became: %s", atom(~"-").to_str())
+    }
+}
+
+#[test]
 fn test_that_atom_can_read_an_int() {
     match atom(~"10") {
         Int(10) => (),
@@ -63,11 +79,15 @@ fn test_that_atom_can_read_a_float() {
 }
 
 fn atom( input:~str ) -> Expression {
-    match int::from_str(input) {
-        Some(number) => Int(number),
-        None => match float::from_str(input) {
-            Some(number) => Float(number),
-            None => Symbol(input)
+    match input {
+        ~"+" => Symbol( ~"+" ),
+        ~"-" => Symbol( ~"-" ),
+        _ => match int::from_str(input) {
+            Some(number) => Int(number),
+            None => match float::from_str(input) {
+                Some(number) => Float(number),
+                None => Symbol(input)
+            }
         }
     }
 }

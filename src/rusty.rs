@@ -64,7 +64,7 @@ fn test_that_if_evaluates_the_then_branch() {
     match value {
         Int(2) => (),
         List( [Symbol(~"begin"), Int(1), Int(2)]) => fail ~"If just returned the then branch",
-        _ => fail fmt!("If returned something unusual (%s)", expression::stringify(value))
+        _ => fail fmt!("If returned something unusual (%s)", value.to_str())
     }
 }
 
@@ -75,7 +75,7 @@ fn test_that_if_evaluates_the_else_branch() {
     match value {
         Int(2) => (),
         List( [Symbol(~"begin"), Int(1), Int(2)]) => fail ~"If just returned the else branch",
-        _ => fail fmt!("If returned something unusual (%s)", expression::stringify(value))
+        _ => fail fmt!("If returned something unusual (%s)", value.to_str())
     }
 }
 
@@ -86,7 +86,7 @@ fn test_that_if_evaluates_the_test() {
     match value {
         Int(1) => fail ~"If didn't evaluate the test",
         Int(2) => (),
-        _ => fail fmt!("If returned something unusual (%s)", expression::stringify(value))
+        _ => fail fmt!("If returned something unusual (%s)", value.to_str())
     }
 }
 
@@ -98,7 +98,7 @@ fn test_that_bare_symbol_is_interpreted_as_variable() {
     let value = eval( expression, env );
     match value {
         Int(10) => (),
-        _ => fail fmt!("Expected 10 got %s", expression::stringify(value))
+        _ => fail fmt!("Expected 10 got %s", value.to_str())
     }
 }
 
@@ -117,7 +117,7 @@ fn test_that_define_can_add_a_variable() {
     let value = eval( expression, env );
     match env.lookup(~"x") {
         Some(Int(10)) => (),
-        _ => fail fmt!("Expected 10 got %s", expression::stringify(value))
+        _ => fail fmt!("Expected 10 got %s", value.to_str())
     }
 }
 
@@ -137,7 +137,7 @@ fn test_that_set_can_change_a_variable() {
     let value = eval( expression, env );
     match env.lookup(~"x") {
         Some(Int(10)) => (),
-        _ => fail fmt!("Expected 10 got %s", expression::stringify(value))
+        _ => fail fmt!("Expected 10 got %s", value.to_str())
     }
 }
 
@@ -150,7 +150,7 @@ fn test_that_set_returns_the_value_not_the_key() {
     match value {
         Int(10) => (),
         Symbol(~"x") => fail ~"set! returned the key, not the value",
-        _ => fail fmt!("Expected 10 got %s", expression::stringify(value))
+        _ => fail fmt!("Expected 10 got %s", value.to_str())
     }
 }
 
@@ -161,7 +161,7 @@ fn test_that_begin_can_handle_one_argument() {
     let value = eval( expression, env );
     match value {
         Int(10) => (),
-        _ => fail fmt!("Expected 10 got %s", expression::stringify(value))
+        _ => fail fmt!("Expected 10 got %s", value.to_str())
     }
 }
 
@@ -172,11 +172,13 @@ fn test_that_begin_evaluates_all_arguments() {
     let value = eval( expression, env );
     match env.lookup(~"x") {
         Some(Int(10)) => (),
-        _ => fail fmt!("Expected 10 got %s", expression::stringify(value))
+        _ => fail fmt!("Expected 10 got %s", value.to_str())
     }
     match value {
         Int(10) => (),
-        _ => fail fmt!("Expected 10 got %s", expression::stringify(value))
+        _ => fail fmt!("Expected 10 got %s", value.to_str())
+    }
+}
     }
 }
 
@@ -199,7 +201,7 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
         match expressions {
             [_, test, true_expr, false_expr] => {
                 let condition = eval(test, environment);
-                eval(if condition.is_truthy() {
+                eval(if condition.to_bool() {
                     true_expr
                 } else {
                     false_expr
@@ -279,9 +281,9 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
 }
 
 fn main() {
-    io::println(expression::stringify( parse( "(1 2 3 (1 2 3))" ) ));
-    io::println(expression::stringify( parse( "((1 2) 3 (1 2 3))" ) ));
+    io::println( parse( "(1 2 3 (1 2 3))" ).to_str() );
+    io::println( parse( "((1 2 3) (1 2 3))" ).to_str() );
     let blah:Expression = List(~[Int(1), List(~[Float(1.0), Symbol(~"xyz")])]);
-    io::println(expression::stringify(blah));
+    io::println(blah.to_str());
     io::println( "(begin 1 2)" )
 }

@@ -204,6 +204,39 @@ fn test_if_returns_fourth_part_when_if_is_false() {
     }
 }  
 
+#[test]
+fn test_that_if_evaluates_the_then_branch() {
+    let expression = parse( ~"(if 1 (begin 1 2) 7)" );
+    let value = eval( expression );
+    match value {
+        Int(2) => (),
+        List( [Symbol(~"begin"), Int(1), Int(2)]) => fail ~"If just returned the then branch",
+        _ => fail fmt!("If returned something unusual (%s)", stringify_expression(value))
+    }
+}
+
+#[test]
+fn test_that_if_evaluates_the_else_branch() {
+    let expression = parse( ~"(if 0 7 (begin 1 2))" );
+    let value = eval( expression );
+    match value {
+        Int(2) => (),
+        List( [Symbol(~"begin"), Int(1), Int(2)]) => fail ~"If just returned the else branch",
+        _ => fail fmt!("If returned something unusual (%s)", stringify_expression(value))
+    }
+}
+
+#[test]
+fn test_that_if_evaluates_the_test() {
+    let expression = parse( ~"(if (begin 1 0) 1 2)" );
+    let value = eval( expression );
+    match value {
+        Int(1) => fail ~"If didn't evaluate the test",
+        Int(2) => (),
+        _ => fail fmt!("If returned something unusual (%s)", stringify_expression(value))
+    }
+}
+
 fn eval( expression:Expression ) -> Expression {
     fn quote(expressions:~[Expression]) -> Expression {
         match expressions {
@@ -215,7 +248,7 @@ fn eval( expression:Expression ) -> Expression {
     fn if_(expressions:~[Expression]) -> Expression {
         match expressions {
             [_, test, true_expr, false_expr] => {
-                if is_truthy( test ) { true_expr } else { false_expr }
+                eval(if is_truthy( eval(test) ) { true_expr } else { false_expr })
             }
             _ => fail ~"Syntax Error: if must take three arguments"
         }

@@ -198,7 +198,12 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
     fn if_(expressions:~[Expression], environment:@Environment) -> Expression {
         match expressions {
             [_, test, true_expr, false_expr] => {
-                eval(if expression::is_truthy( eval(test, environment) ) { true_expr } else { false_expr }, environment)
+                let condition = eval(test, environment);
+                eval(if condition.is_truthy() {
+                    true_expr
+                } else {
+                    false_expr
+                }, environment)
             }
             _ => fail ~"Syntax Error: if must take three arguments"
         }

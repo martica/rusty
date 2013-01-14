@@ -1,10 +1,19 @@
-
 pub enum Expression {
     Int(int),
     Float(float),
     Symbol(~str),
     List(~[Expression])
 } 
+
+pub impl Expression {
+    fn is_truthy(&self) -> bool {
+        match *self {
+            Int( number ) => 0 != number,
+            Float( number ) => 0.0 != number,
+            _ => true
+        }
+    }
+}
 
 pub fn stringify( expression:Expression ) -> ~str {
     match expression {

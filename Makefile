@@ -1,5 +1,6 @@
 dir_guard=@mkdir -p $(@D)
 ENV=RUST_LOG=rustc=1,::rt::backtrace
+OPTIONS=-A non-implicitly-copyable-typarams
 
 all: test run
 
@@ -14,8 +15,8 @@ test: bin/test-rusty
 
 bin/test-rusty: rusty.rs
 	$(dir_guard)
-	$(ENV) rustc --test rusty.rs -o bin/test-rusty
+	$(ENV) rustc $(OPTIONS) --test rusty.rs -o bin/test-rusty
 
 bin/rusty: rusty.rs
 	$(dir_guard)
-	$(ENV) rustc rusty.rs -o bin/rusty
+	$(ENV) rustc $(OPTIONS) rusty.rs -o bin/rusty

@@ -23,3 +23,25 @@ pub fn stringify( expression:Expression ) -> ~str {
         }
     }
 }
+
+#[test]
+fn test_is_truthy_returns_true_for_non_zero_numbers() {
+    assert is_truthy( Int(1) );
+    assert is_truthy( Int(-1) );
+    assert is_truthy( Float(1.0) );
+    assert is_truthy( Float(-1.0) );
+}
+
+#[test]
+fn test_is_truthy_returns_false_for_zero_numbers() {
+    assert !is_truthy( Int(0) );
+    assert !is_truthy( Float(0.0) );
+}
+
+pub fn is_truthy( expression:Expression ) -> bool {
+    match expression {
+        Int( number ) => 0 != number,
+        Float( number ) => 0.0 != number,
+        _ => true
+    }
+}

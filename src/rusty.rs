@@ -198,7 +198,7 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
     fn if_(expressions:~[Expression], environment:@Environment) -> Expression {
         match expressions {
             [_, test, true_expr, false_expr] => {
-                eval(if is_truthy( eval(test, environment) ) { true_expr } else { false_expr }, environment)
+                eval(if expression::is_truthy( eval(test, environment) ) { true_expr } else { false_expr }, environment)
             }
             _ => fail ~"Syntax Error: if must take three arguments"
         }
@@ -270,69 +270,6 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
         _ => {
             expression
         }
-    }
-}
-
-#[test]
-fn test_is_truthy_returns_true_for_non_zero_numbers() {
-    assert is_truthy( Int(1) );
-    assert is_truthy( Int(-1) );
-    assert is_truthy( Float(1.0) );
-    assert is_truthy( Float(-1.0) );
-}
-
-#[test]
-fn test_is_truthy_returns_false_for_zero_numbers() {
-    assert !is_truthy( Int(0) );
-    assert !is_truthy( Float(0.0) );
-}
-
-fn is_truthy( expression:Expression ) -> bool {
-    match expression {
-        Int( number ) => 0 != number,
-        Float( number ) => 0.0 != number,
-        _ => true
-    }
-}
-
-#[test]
-fn test_environment_accepts_new_value_and_returns_it() {
-    let env:Environment = Environment::new_global_environment();
-    env.define( ~"monkey", Int(1) );
-    env.define( ~"turkey", Int(2) );
-    match env.lookup( ~"monkey" ) {
-        Some(Int(1)) => (),
-        _ => fail ~"Monkey wasn't an Int(1)"
-    }
-    match env.lookup( ~"turkey" ) {
-        Some(Int(2)) => (),
-        _ => fail ~"Turkey wasn't an Int(2)"
-    }
-}  
-
-#[test]
-fn test_environment_allows_values_to_change() {
-    let env:Environment = Environment::new_global_environment();
-    env.define( ~"monkey", Int(1) );
-    match env.lookup( ~"monkey" ) {
-        Some(Int(1)) => (),
-        _ => fail ~"Monkey wasn't an Int(1) before mutation"
-    }
-    env.define( ~"monkey", Int(2) );
-    match env.lookup( ~"monkey" ) {
-        Some(Int(2)) => (),
-        _ => fail ~"Monkey wasn't an Int(2) after mutation"
-    }
-}
-
-#[test]
-fn test_environment_checks_enclosing_environment() {
-    let enclosure:~Environment = ~Environment::new_global_environment();
-    enclosure.define( ~"monkey", Int(1) );
-    let env:Environment = Environment::new(enclosure);
-    match env.lookup( ~"monkey" ) {
-        Some(Int(1)) => (),
-        _ => fail ~"monkey wasn't found in env or enclosure... he's escaped?"
     }
 }
 

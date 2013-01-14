@@ -270,6 +270,14 @@ fn test_that_define_can_add_a_variable() {
 }
 
 #[test]
+#[should_fail]
+fn test_that_set_cannot_create_a_variable() {
+    let env = @Environment::new_global_environment();
+    let expression = parse( ~"(set! x 10)" );
+    eval( expression, env );
+}
+
+#[test]
 fn test_that_set_can_change_a_variable() {
     let env = @Environment::new_global_environment();
     env.define(~"x", Int(100));
@@ -364,6 +372,20 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
     }
 
     fn set_bang(expressions:~[Expression], environment:@Environment) -> Expression {
+        match copy expressions {
+            [_, symbol, _] => {
+                match copy symbol {
+                    Symbol( key ) => {
+                        match environment.lookup( copy key )  {
+                            None => fail ~"Syntax Error: set! cannot create a variable",
+                            _ => ()
+                        }
+                    }
+                    _ => ()
+                }
+            }
+            _ => ()
+        }
         let symbol = reset_variable(expressions, environment, ~"set!");
         match copy symbol {
             Symbol( key ) => {

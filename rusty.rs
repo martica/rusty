@@ -269,6 +269,31 @@ fn test_that_define_can_add_a_variable() {
     }
 }
 
+#[test]
+fn test_that_set_can_change_a_variable() {
+    let env = @Environment::new_global_environment();
+    env.define(~"x", Int(100));
+    let expression = parse( ~"(set! x 10)" );
+    let value = eval( expression, env );
+    match env.lookup(~"x") {
+        Some(Int(10)) => (),
+        _ => fail fmt!("Expected 10 got %s", stringify_expression(value))
+    }
+}
+
+#[test]
+fn test_that_set_returns_the_value_not_the_key() {
+    let env = @Environment::new_global_environment();
+    env.define(~"x", Int(100));
+    let expression = parse( ~"(set! x 10)" );
+    let value = eval( expression, env );
+    match value {
+        Int(10) => (),
+        Symbol(~"x") => fail ~"set! returned the key, not the value",
+        _ => fail fmt!("Expected 10 got %s", stringify_expression(value))
+    }
+}
+
 fn eval( expression:Expression, environment:@Environment ) -> Expression {
     fn quote(expressions:~[Expression]) -> Expression {
         match expressions {
@@ -307,6 +332,17 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
         reset_variable(expressions, environment, ~"define")
     }
 
+    fn set_bang(expressions:~[Expression], environment:@Environment) -> Expression {
+        let symbol = reset_variable(expressions, environment, ~"set!");
+        match copy symbol {
+            Symbol( key ) => {
+                match environment.lookup( copy key ) {
+                    Some( value ) => value,
+                    None => fail
+                }
+            }
+            _ => fail
+        }
     }
 
     match copy expression {
@@ -316,6 +352,7 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
                 Symbol(~"begin") => begin(expressions, environment),
                 Symbol(~"if") => if_(expressions, environment),
                 Symbol(~"define") => define(expressions, environment),
+                Symbol(~"set!") => set_bang(expressions, environment),
                 _ => expression
             }
         }

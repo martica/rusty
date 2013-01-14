@@ -238,6 +238,26 @@ fn test_that_if_evaluates_the_test() {
     }
 }
 
+#[test]
+fn test_that_bare_symbol_is_interpreted_as_variable() {
+    let env = @Environment::new_global_environment();
+    env.define(~"monkey", Int(10));
+    let expression = parse( ~"monkey" );
+    let value = eval( expression, env );
+    match value {
+        Int(10) => (),
+        _ => fail fmt!("Expected 10 got %s", stringify_expression(value))
+    }
+}
+
+#[test]
+#[should_fail]
+fn test_that_undefined_symbol_is_an_error() {
+    let env = @Environment::new_global_environment();
+    let expression = parse( ~"monkey" );
+    eval( expression, env );
+}
+
 fn eval( expression:Expression, environment:@Environment ) -> Expression {
     fn quote(expressions:~[Expression]) -> Expression {
         match expressions {
@@ -266,6 +286,12 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
                 Symbol(~"begin") => begin(expressions, environment),
                 Symbol(~"if") => if_(expressions, environment),
                 _ => expression
+            }
+        }
+        Symbol( symbol ) => {
+            match environment.lookup( copy symbol ) {
+                Some( value ) => value,
+                None => fail fmt!("Undefined symbol %s",symbol)
             }
         }
         _ => {

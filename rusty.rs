@@ -1,5 +1,11 @@
 extern mod std;
 
+mod environment;
+use environment::Environment;
+mod expression;
+use expression::Expression; 
+use expression::{Int,Float,Symbol,List};
+
 #[test]
 fn test_tokenize() {
     assert tokenize( ~"(1 2 3)" ) == ~[~"(", ~"1", ~"2", ~"3", ~")"];
@@ -130,30 +136,6 @@ fn read( tokens:~[~str] ) -> Expression {
     expression
 }
 
-enum Expression {
-    Int(int),
-    Float(float),
-    Symbol(~str),
-    List(~[Expression])
-} 
-
-fn stringify_expression( expression:Expression ) -> ~str {
-    match expression {
-        Int(number) => { fmt!("%d", number) }
-        Float(number) => { 
-            if number == (number as int) as float {
-                fmt!("%.1f", number)
-            } else {
-                fmt!("%f", number)
-            }
-        }
-        Symbol(string) => { string }
-        List(expressions) => {
-            let strings = expressions.map( | &expr | {stringify_expression(expr)} );
-            ~"(" + strings.foldl(~"", |&x, &y| { x + ~" " + y } ).trim() + ~")"
-        }
-    }
-}
 
 #[test]
 fn test_eval_returns_number_when_passed_number() {
@@ -168,7 +150,6 @@ fn test_eval_returns_number_when_passed_number() {
 fn test_eval_returns_expression_when_passed_quote() {
     let value = eval( List( ~[ Symbol(~"quote"), List( ~[ Symbol(~"a") ] ) ] ), 
     @Environment::new_global_environment() );
-    io::println( stringify_expression( value ) );
     match value {
         List( [ Symbol( ~"a" ) ] ) => (),
         _ => fail
@@ -212,7 +193,7 @@ fn test_that_if_evaluates_the_then_branch() {
     match value {
         Int(2) => (),
         List( [Symbol(~"begin"), Int(1), Int(2)]) => fail ~"If just returned the then branch",
-        _ => fail fmt!("If returned something unusual (%s)", stringify_expression(value))
+        _ => fail fmt!("If returned something unusual (%s)", expression::stringify(value))
     }
 }
 
@@ -223,7 +204,7 @@ fn test_that_if_evaluates_the_else_branch() {
     match value {
         Int(2) => (),
         List( [Symbol(~"begin"), Int(1), Int(2)]) => fail ~"If just returned the else branch",
-        _ => fail fmt!("If returned something unusual (%s)", stringify_expression(value))
+        _ => fail fmt!("If returned something unusual (%s)", expression::stringify(value))
     }
 }
 
@@ -234,7 +215,7 @@ fn test_that_if_evaluates_the_test() {
     match value {
         Int(1) => fail ~"If didn't evaluate the test",
         Int(2) => (),
-        _ => fail fmt!("If returned something unusual (%s)", stringify_expression(value))
+        _ => fail fmt!("If returned something unusual (%s)", expression::stringify(value))
     }
 }
 
@@ -246,7 +227,7 @@ fn test_that_bare_symbol_is_interpreted_as_variable() {
     let value = eval( expression, env );
     match value {
         Int(10) => (),
-        _ => fail fmt!("Expected 10 got %s", stringify_expression(value))
+        _ => fail fmt!("Expected 10 got %s", expression::stringify(value))
     }
 }
 
@@ -265,7 +246,7 @@ fn test_that_define_can_add_a_variable() {
     let value = eval( expression, env );
     match env.lookup(~"x") {
         Some(Int(10)) => (),
-        _ => fail fmt!("Expected 10 got %s", stringify_expression(value))
+        _ => fail fmt!("Expected 10 got %s", expression::stringify(value))
     }
 }
 
@@ -285,7 +266,7 @@ fn test_that_set_can_change_a_variable() {
     let value = eval( expression, env );
     match env.lookup(~"x") {
         Some(Int(10)) => (),
-        _ => fail fmt!("Expected 10 got %s", stringify_expression(value))
+        _ => fail fmt!("Expected 10 got %s", expression::stringify(value))
     }
 }
 
@@ -298,7 +279,7 @@ fn test_that_set_returns_the_value_not_the_key() {
     match value {
         Int(10) => (),
         Symbol(~"x") => fail ~"set! returned the key, not the value",
-        _ => fail fmt!("Expected 10 got %s", stringify_expression(value))
+        _ => fail fmt!("Expected 10 got %s", expression::stringify(value))
     }
 }
 
@@ -309,7 +290,7 @@ fn test_that_begin_can_handle_one_argument() {
     let value = eval( expression, env );
     match value {
         Int(10) => (),
-        _ => fail fmt!("Expected 10 got %s", stringify_expression(value))
+        _ => fail fmt!("Expected 10 got %s", expression::stringify(value))
     }
 }
 
@@ -320,11 +301,11 @@ fn test_that_begin_evaluates_all_arguments() {
     let value = eval( expression, env );
     match env.lookup(~"x") {
         Some(Int(10)) => (),
-        _ => fail fmt!("Expected 10 got %s", stringify_expression(value))
+        _ => fail fmt!("Expected 10 got %s", expression::stringify(value))
     }
     match value {
         Int(10) => (),
-        _ => fail fmt!("Expected 10 got %s", stringify_expression(value))
+        _ => fail fmt!("Expected 10 got %s", expression::stringify(value))
     }
 }
 
@@ -484,46 +465,10 @@ fn test_environment_checks_enclosing_environment() {
     }
 }
 
-struct Environment {
-    enclosure:Option<~Environment>,
-    mappings:std::treemap::TreeMap<~str,Expression>
-}
-
-impl Environment {
-    fn define(&self, key:~str, value:Expression) {
-        std::treemap::insert(self.mappings, key, value);
-    }
-
-    fn check_enclosure(&self, key:~str) -> Option<Expression> {
-        match copy self.enclosure {
-            Some(environment) => environment.lookup(key),
-            _ => None
-        }
-    }
-
-    fn lookup(&self, key:~str) -> Option<Expression> {
-        let local_definition = std::treemap::find(self.mappings, copy key);
-        match local_definition {
-            None => self.check_enclosure(key),
-            _ => local_definition
-        }
-    }
-
-    static fn new_global_environment() -> Environment {
-        let mappings = std::treemap::TreeMap();
-        Environment {enclosure:None, mappings:mappings} 
-    }
-
-    static fn new(enclosure:~Environment) -> Environment {
-        let mappings = std::treemap::TreeMap();
-        Environment {enclosure:Some(enclosure), mappings:mappings}
-    }
-}
-
 fn main() {
-    io::println(stringify_expression( parse( "(1 2 3 (1 2 3))" ) ));
-    io::println(stringify_expression( parse( "((1 2) 3 (1 2 3))" ) ));
+    io::println(expression::stringify( parse( "(1 2 3 (1 2 3))" ) ));
+    io::println(expression::stringify( parse( "((1 2) 3 (1 2 3))" ) ));
     let blah:Expression = List(~[Int(1), List(~[Float(1.0), Symbol(~"xyz")])]);
-    io::println(stringify_expression(blah));
+    io::println(expression::stringify(blah));
     io::println( "(begin 1 2)" )
 }

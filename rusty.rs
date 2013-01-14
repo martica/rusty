@@ -258,6 +258,17 @@ fn test_that_undefined_symbol_is_an_error() {
     eval( expression, env );
 }
 
+#[test]
+fn test_that_define_can_add_a_variable() {
+    let env = @Environment::new_global_environment();
+    let expression = parse( ~"(define x 10)" );
+    let value = eval( expression, env );
+    match env.lookup(~"x") {
+        Some(Int(10)) => (),
+        _ => fail fmt!("Expected 10 got %s", stringify_expression(value))
+    }
+}
+
 fn eval( expression:Expression, environment:@Environment ) -> Expression {
     fn quote(expressions:~[Expression]) -> Expression {
         match expressions {
@@ -277,6 +288,25 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
 
     fn begin(expressions:~[Expression], environment:@Environment) -> Expression {
         eval( copy expressions[ expressions.len() - 1], environment )
+    fn reset_variable(expressions:~[Expression], environment:@Environment, function:~str) -> Expression {
+        match expressions {
+            [_, symbol, value] => {
+                match copy symbol {
+                    Symbol( key ) => {
+                        environment.define(key, eval(value, environment));
+                        symbol
+                    }
+                    _ => fail fmt!("Syntax Error: %s takes a symbol as its first argument", function)
+                }
+            }
+            _ => fail fmt!("Syntax Error: %s must take two arguments", function)
+        }
+    }
+
+    fn define(expressions:~[Expression], environment:@Environment) -> Expression {
+        reset_variable(expressions, environment, ~"define")
+    }
+
     }
 
     match copy expression {
@@ -285,6 +315,7 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
                 Symbol(~"quote") => quote(expressions),
                 Symbol(~"begin") => begin(expressions, environment),
                 Symbol(~"if") => if_(expressions, environment),
+                Symbol(~"define") => define(expressions, environment),
                 _ => expression
             }
         }

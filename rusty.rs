@@ -294,12 +294,45 @@ fn test_that_set_returns_the_value_not_the_key() {
     }
 }
 
+#[test]
+fn test_that_begin_can_handle_one_argument() {
+    let env = @Environment::new_global_environment();
+    let expression = parse( ~"(begin 10)" );
+    let value = eval( expression, env );
+    match value {
+        Int(10) => (),
+        _ => fail fmt!("Expected 10 got %s", stringify_expression(value))
+    }
+}
+
+#[test]
+fn test_that_begin_evaluates_all_arguments() {
+    let env = @Environment::new_global_environment();
+    let expression = parse( ~"(begin (define x 10) x)" );
+    let value = eval( expression, env );
+    match env.lookup(~"x") {
+        Some(Int(10)) => (),
+        _ => fail fmt!("Expected 10 got %s", stringify_expression(value))
+    }
+    match value {
+        Int(10) => (),
+        _ => fail fmt!("Expected 10 got %s", stringify_expression(value))
+    }
+}
+
 fn eval( expression:Expression, environment:@Environment ) -> Expression {
     fn quote(expressions:~[Expression]) -> Expression {
         match expressions {
             [_, expr] => expr,
             _ => fail ~"Syntax Error: quote must take a single argument"
         }
+    }
+
+    fn begin(expressions:~[Expression], environment:@Environment) -> Expression {
+        for expressions.tail().init().each() |&expression| {
+            eval( expression, environment );
+        }
+        eval( expressions.last(), environment )
     }
 
     fn if_(expressions:~[Expression], environment:@Environment) -> Expression {
@@ -311,8 +344,6 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
         }
     }
 
-    fn begin(expressions:~[Expression], environment:@Environment) -> Expression {
-        eval( copy expressions[ expressions.len() - 1], environment )
     fn reset_variable(expressions:~[Expression], environment:@Environment, function:~str) -> Expression {
         match expressions {
             [_, symbol, value] => {

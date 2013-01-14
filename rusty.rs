@@ -205,24 +205,32 @@ fn test_if_returns_fourth_part_when_if_is_false() {
 }  
 
 fn eval( expression:Expression ) -> Expression {
+    fn quote(expressions:~[Expression]) -> Expression {
+        match expressions {
+            [_, expr] => expr,
+            _ => fail ~"Syntax Error: quote must take a single argument"
+        }
+    }
+
+    fn if_(expressions:~[Expression]) -> Expression {
+        match expressions {
+            [_, test, true_expr, false_expr] => {
+                if is_truthy( test ) { true_expr } else { false_expr }
+            }
+            _ => fail ~"Syntax Error: if must take three arguments"
+        }
+    }
+
+    fn begin(expressions:~[Expression]) -> Expression {
+        eval( copy expressions[ expressions.len() - 1] )
+    }
+
     match copy expression {
         List( expressions ) => {
             match expressions[0] {
-                Symbol(~"quote") => {
-                    match expressions {
-                        [Symbol(~"quote"), expr] => expr,
-                        _ => fail
-                    }
-                }
-                Symbol(~"begin") => eval( copy expressions[ expressions.len() - 1] ),
-                Symbol(~"if") => {
-                    match expressions {
-                        [Symbol(~"if"), test, true_expr, false_expr] => {
-                            if is_truthy( test ) { true_expr } else { false_expr }
-                        }
-                        _ => {fail}
-                    }
-                }
+                Symbol(~"quote") => quote(expressions),
+                Symbol(~"begin") => begin(expressions),
+                Symbol(~"if") => if_(expressions),
                 _ => expression
             }
         }

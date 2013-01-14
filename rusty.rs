@@ -157,7 +157,7 @@ fn stringify_expression( expression:Expression ) -> ~str {
 
 #[test]
 fn test_eval_returns_number_when_passed_number() {
-    let value = eval( Int(1) );
+    let value = eval( Int(1), @Environment::new_global_environment() );
     match value {
         Int(1) => (),
         _ => fail
@@ -166,7 +166,8 @@ fn test_eval_returns_number_when_passed_number() {
 
 #[test]
 fn test_eval_returns_expression_when_passed_quote() {
-    let value = eval( List( ~[ Symbol(~"quote"), List( ~[ Symbol(~"a") ] ) ] ));
+    let value = eval( List( ~[ Symbol(~"quote"), List( ~[ Symbol(~"a") ] ) ] ), 
+    @Environment::new_global_environment() );
     io::println( stringify_expression( value ) );
     match value {
         List( [ Symbol( ~"a" ) ] ) => (),
@@ -177,7 +178,7 @@ fn test_eval_returns_expression_when_passed_quote() {
 #[test]
 fn test_eval_returns_last_expression_when_passed_begin() {
     let expression = parse( ~"(begin 1 2 3)" );
-    let value = eval( expression );
+    let value = eval( expression, @Environment::new_global_environment() );
     match value {
         Int(3) => (),
         _ => fail
@@ -187,7 +188,7 @@ fn test_eval_returns_last_expression_when_passed_begin() {
 #[test]
 fn test_if_returns_third_part_when_if_is_true() {
     let expression = parse( ~"(if 1 2 3)" );
-    let value = eval( expression );
+    let value = eval( expression, @Environment::new_global_environment() );
     match value {
         Int(2) => (),
         _ => fail
@@ -197,7 +198,7 @@ fn test_if_returns_third_part_when_if_is_true() {
 #[test]
 fn test_if_returns_fourth_part_when_if_is_false() {
     let expression = parse( ~"(if 0 2 3)" );
-    let value = eval( expression );
+    let value = eval( expression, @Environment::new_global_environment() );
     match value {
         Int(3) => (),
         _ => fail
@@ -207,7 +208,7 @@ fn test_if_returns_fourth_part_when_if_is_false() {
 #[test]
 fn test_that_if_evaluates_the_then_branch() {
     let expression = parse( ~"(if 1 (begin 1 2) 7)" );
-    let value = eval( expression );
+    let value = eval( expression, @Environment::new_global_environment() );
     match value {
         Int(2) => (),
         List( [Symbol(~"begin"), Int(1), Int(2)]) => fail ~"If just returned the then branch",
@@ -218,7 +219,7 @@ fn test_that_if_evaluates_the_then_branch() {
 #[test]
 fn test_that_if_evaluates_the_else_branch() {
     let expression = parse( ~"(if 0 7 (begin 1 2))" );
-    let value = eval( expression );
+    let value = eval( expression, @Environment::new_global_environment() );
     match value {
         Int(2) => (),
         List( [Symbol(~"begin"), Int(1), Int(2)]) => fail ~"If just returned the else branch",
@@ -229,7 +230,7 @@ fn test_that_if_evaluates_the_else_branch() {
 #[test]
 fn test_that_if_evaluates_the_test() {
     let expression = parse( ~"(if (begin 1 0) 1 2)" );
-    let value = eval( expression );
+    let value = eval( expression, @Environment::new_global_environment() );
     match value {
         Int(1) => fail ~"If didn't evaluate the test",
         Int(2) => (),
@@ -237,7 +238,7 @@ fn test_that_if_evaluates_the_test() {
     }
 }
 
-fn eval( expression:Expression ) -> Expression {
+fn eval( expression:Expression, environment:@Environment ) -> Expression {
     fn quote(expressions:~[Expression]) -> Expression {
         match expressions {
             [_, expr] => expr,
@@ -245,25 +246,25 @@ fn eval( expression:Expression ) -> Expression {
         }
     }
 
-    fn if_(expressions:~[Expression]) -> Expression {
+    fn if_(expressions:~[Expression], environment:@Environment) -> Expression {
         match expressions {
             [_, test, true_expr, false_expr] => {
-                eval(if is_truthy( eval(test) ) { true_expr } else { false_expr })
+                eval(if is_truthy( eval(test, environment) ) { true_expr } else { false_expr }, environment)
             }
             _ => fail ~"Syntax Error: if must take three arguments"
         }
     }
 
-    fn begin(expressions:~[Expression]) -> Expression {
-        eval( copy expressions[ expressions.len() - 1] )
+    fn begin(expressions:~[Expression], environment:@Environment) -> Expression {
+        eval( copy expressions[ expressions.len() - 1], environment )
     }
 
     match copy expression {
         List( expressions ) => {
             match expressions[0] {
                 Symbol(~"quote") => quote(expressions),
-                Symbol(~"begin") => begin(expressions),
-                Symbol(~"if") => if_(expressions),
+                Symbol(~"begin") => begin(expressions, environment),
+                Symbol(~"if") => if_(expressions, environment),
                 _ => expression
             }
         }

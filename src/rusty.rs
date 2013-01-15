@@ -1,5 +1,6 @@
 extern mod std;
 use task::spawn;
+use io::{Reader,ReaderUtil};
 
 mod environment;
 use environment::Environment;
@@ -361,17 +362,25 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
 
 fn main() {
     fn evaluate( expr:~str ) {
-        let expr2 = copy expr;
+        let sent_expr = copy expr;
         let result = do task::try {
-             eval( parse(expr), @Environment::new_global_environment() )
+            let env = @Environment::new_global_environment();
+            eval( parse(sent_expr), env )
         };
         if result.is_ok() {
-            io::println( fmt!("%s -> %s", expr2, result.unwrap().to_str()) );
+            io::println( fmt!("%s -> %s", expr, result.unwrap().to_str()) );
         } else {
-            io::println( fmt!("%s gave an error.", expr2) );
+            io::println( fmt!("%s gave an error.", expr) );
         }
     }
+
     evaluate( ~"(* 4 99)" );    
     evaluate( ~"(begin (define square (lambda (x) (* x x))) (square 4))" );
     evaluate( ~"(7 7)" );
+
+    loop {
+        io::print("rusty> ");
+        let in = io::stdin().read_line();
+        evaluate( in );
+    }
 }

@@ -69,7 +69,18 @@ pub impl Environment {
 
     static fn new_global_environment() -> Environment {
         let mappings = TreeMap();
-        Environment {enclosure:None, mappings:mappings} 
+        let env = Environment {enclosure:None, mappings:mappings};
+        env.define(~"+", Proc( |addends| {
+            let mut sum = 0;
+            for addends.each() |&expr| {
+                match expr {
+                    Int(addend) => sum += addend,
+                    _ => fail ~"+ only accepts integers right now"
+                }
+            }
+            Int(sum)
+            } ));
+        env
     }
 
     static fn new(enclosure:~Environment) -> Environment {

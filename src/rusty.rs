@@ -4,7 +4,7 @@ mod environment;
 use environment::Environment;
 mod expression;
 use expression::Expression; 
-use expression::{Int,Float,Symbol,List};
+use expression::{Int,Float,Symbol,List,Proc};
 mod parse;
 use parse::parse;
 
@@ -179,6 +179,26 @@ fn test_that_begin_evaluates_all_arguments() {
         _ => fail fmt!("Expected 10 got %s", value.to_str())
     }
 }
+
+#[test]
+fn test_that_other_symbols_are_evaluated_as_procs() {
+    let env = @Environment::new_global_environment();
+    let expression = parse( ~"(+ 1 2)" );
+    let value = eval( expression, env );
+    match value {
+        Int(3) => (),
+        _ => fail fmt!("(+ 1 2) became %s", value.to_str())
+    }
+}
+
+#[test]
+fn test_that_proc_params_are_evaluated() {
+    let env=@Environment::new_global_environment();
+    let expression = parse( ~"(+ (+ 1 2) 3)" );
+    let value = eval (expression, env);
+    match value {
+        Int(6) => (),
+        _ => fail fmt!("(+ (+ 1 2) 3) became %s", value.to_str())
     }
 }
 
@@ -257,6 +277,24 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
         }
     }
 
+    fn proc(expressions:~[Expression], environment:@Environment) -> Expression {
+        let key = match expressions.head() {
+            Symbol( key ) => key,
+            _ => fail fmt!("%s is not a procedure", expressions.head().to_str())
+        };
+
+        let proc = match environment.lookup( copy key ) {
+            Some(value) => value,
+            _ => fail fmt!("\"%s\" is not defined", key)
+        };
+
+        let params = expressions.tail().map(|&x| eval(x,environment));
+        match proc {
+            Proc( procedure ) => procedure( params ),
+            _ => fail fmt!("\"%s\" is not a procedure", key)
+        }
+    }
+
     match copy expression {
         List( expressions ) => {
             match expressions[0] {
@@ -265,7 +303,7 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
                 Symbol(~"if") => if_(expressions, environment),
                 Symbol(~"define") => define(expressions, environment),
                 Symbol(~"set!") => set_bang(expressions, environment),
-                _ => expression
+                _ => proc(expressions, environment) 
             }
         }
         Symbol( symbol ) => {

@@ -2,7 +2,8 @@ pub enum Expression {
     Int(int),
     Float(float),
     Symbol(~str),
-    List(~[Expression])
+    List(~[Expression]),
+    Proc(~fn(~[Expression]) -> Expression)
 } 
 
 pub impl Expression {
@@ -29,6 +30,7 @@ pub impl Expression {
                 let strings = expressions.map( | &expr | {expr.to_str()} );
                 ~"(" + strings.foldl(~"", |&x, &y| { x + ~" " + y } ).trim() + ~")"
             }
+            Proc(procedure) => { ~"procedure" }
         }
     }
 }

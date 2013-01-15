@@ -202,6 +202,17 @@ fn test_that_proc_params_are_evaluated() {
     }
 }
 
+#[test]
+fn test_that_lambda_evaluates_to_a_proc() {
+    let env=@Environment::new_global_environment();
+    let expression = parse( ~"(lambda (x) (* x x))" );
+    let value = eval(expression, env);
+    match value {
+        Proc(_) => (),
+        _ => fail ~"lambda doesn't turn into a Proc"
+    }
+}
+
 fn eval( expression:Expression, environment:@Environment ) -> Expression {
     fn quote(expressions:~[Expression]) -> Expression {
         match expressions {
@@ -295,6 +306,10 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
         }
     }
 
+    fn lambda(expression:~[Expression], environment:@Environment) -> Expression {
+        Proc(|x| {Int(1)})
+    }
+
     match copy expression {
         List( expressions ) => {
             match expressions[0] {
@@ -303,6 +318,7 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
                 Symbol(~"if") => if_(expressions, environment),
                 Symbol(~"define") => define(expressions, environment),
                 Symbol(~"set!") => set_bang(expressions, environment),
+                Symbol(~"lambda") => lambda(expressions, environment),
                 _ => proc(expressions, environment) 
             }
         }

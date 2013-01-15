@@ -80,6 +80,16 @@ pub impl Environment {
             }
             Int(sum)
             } ));
+        env.define(~"*", Proc( |factors, _| {
+            let mut product = 1;
+            for factors.each() |&expr| {
+                match expr {
+                    Int(factor) => product *= factor,
+                    _ => fail ~"* only accepts integers right now"
+                }
+            }
+            Int(product)
+            } ));
         env
     }
 

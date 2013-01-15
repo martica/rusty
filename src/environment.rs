@@ -70,7 +70,7 @@ pub impl Environment {
     static fn new_global_environment() -> Environment {
         let mappings = TreeMap();
         let env = Environment {enclosure:None, mappings:mappings};
-        env.define(~"+", Proc( |addends| {
+        env.define(~"+", Proc( |addends, _| {
             let mut sum = 0;
             for addends.each() |&expr| {
                 match expr {

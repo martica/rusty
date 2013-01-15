@@ -213,6 +213,28 @@ fn test_that_lambda_evaluates_to_a_proc() {
     }
 }
 
+#[test]
+fn test_that_lambda_without_variables_evals() {
+    let env=@Environment::new_global_environment();
+    let expression = parse( ~"( (lambda () (+ 1 1))  )" );
+    let value = eval(expression, env);
+    match value {
+        Int(2) => (),
+        _ => fail fmt!("lambda evaluated to %s", value.to_str())
+    }
+}
+
+#[test]
+fn test_that_lambda_with_a_variable_evals() {
+    let env=@Environment::new_global_environment();
+    let expression = parse( ~"( (lambda (x) (+ x 1)) 1  )" );
+    let value = eval(expression, env);
+    match value {
+        Int(2) => (),
+        _ => fail fmt!("lambda evaluated to %s", value.to_str())
+    }
+}
+
 fn eval( expression:Expression, environment:@Environment ) -> Expression {
     fn quote(expressions:~[Expression]) -> Expression {
         match expressions {
@@ -289,25 +311,27 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
     }
 
     fn proc(expressions:~[Expression], environment:@Environment) -> Expression {
-        let key = match expressions.head() {
-            Symbol( key ) => key,
-            _ => fail fmt!("%s is not a procedure", expressions.head().to_str())
-        };
-
-        let proc = match environment.lookup( copy key ) {
-            Some(value) => value,
-            _ => fail fmt!("\"%s\" is not defined", key)
-        };
-
-        let params = expressions.tail().map(|&x| eval(x,environment));
-        match proc {
-            Proc( procedure ) => procedure( params ),
-            _ => fail fmt!("\"%s\" is not a procedure", key)
+        let exprs = expressions.map(|&expr| eval(expr, environment));
+        match exprs.head() {
+            Proc( procedure ) => procedure( exprs.tail(), environment ),
+            _ => fail fmt!("\"%s\" is not a procedure", exprs.head().to_str())
         }
     }
 
-    fn lambda(expression:~[Expression], environment:@Environment) -> Expression {
-        Proc(|x| {Int(1)})
+    fn lambda(expressions:~[Expression], _:@Environment) -> Expression {
+        match copy expressions {
+            [_, List(param_names), expression] => Proc( |param_values, env| { 
+                    let local_env = @Environment::new( env );
+                    for vec::zip(copy param_names, param_values).each |param| {
+                        match param.first() {
+                            Symbol(key) => local_env.define( key, param.second() ),
+                            _ => fail ~"lambda params list must be list of symbols"
+                        }
+                    }
+                    eval(copy expression, local_env)
+                } ),
+            _ => fail fmt!("Syntax Error: lambda requires 2 arguments, got \"%u\"", expressions.len()-1 )
+        }
     }
 
     match copy expression {

@@ -1,4 +1,5 @@
 extern mod std;
+use task::spawn;
 
 mod environment;
 use environment::Environment;
@@ -359,9 +360,18 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
 }
 
 fn main() {
-    io::println( parse( "(1 2 3 (1 2 3))" ).to_str() );
-    io::println( parse( "((1 2 3) (1 2 3))" ).to_str() );
-    let blah:Expression = List(~[Int(1), List(~[Float(1.0), Symbol(~"xyz")])]);
-    io::println(blah.to_str());
-    io::println( "(begin 1 2)" )
+    fn evaluate( expr:~str ) {
+        let expr2 = copy expr;
+        let result = do task::try {
+             eval( parse(expr), @Environment::new_global_environment() )
+        };
+        if result.is_ok() {
+            io::println( fmt!("%s -> %s", expr2, result.unwrap().to_str()) );
+        } else {
+            io::println( fmt!("%s gave an error.", expr2) );
+        }
+    }
+    evaluate( ~"(* 4 99)" );    
+    evaluate( ~"(begin (define square (lambda (x) (* x x))) (square 4))" );
+    evaluate( ~"(7 7)" );
 }

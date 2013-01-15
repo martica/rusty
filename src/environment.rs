@@ -33,7 +33,7 @@ fn test_environment_allows_values_to_change() {
 
 #[test]
 fn test_environment_checks_enclosing_environment() {
-    let enclosure:~Environment = ~Environment::new_global_environment();
+    let enclosure:@Environment = @Environment::new_global_environment();
     enclosure.define( ~"monkey", Int(1) );
     let env:Environment = Environment::new(enclosure);
     match env.lookup( ~"monkey" ) {
@@ -43,7 +43,7 @@ fn test_environment_checks_enclosing_environment() {
 }
 
 pub struct Environment {
-    enclosure:Option<~Environment>,
+    enclosure:Option<@Environment>,
     mappings:TreeMap<~str,Expression>
 }
 
@@ -83,7 +83,7 @@ pub impl Environment {
         env
     }
 
-    static fn new(enclosure:~Environment) -> Environment {
+    static fn new(enclosure:@Environment) -> Environment {
         let mappings = TreeMap();
         Environment {enclosure:Some(enclosure), mappings:mappings}
     }

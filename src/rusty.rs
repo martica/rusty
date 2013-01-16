@@ -10,91 +10,75 @@ use expression::{Int,Float,Symbol,List,Proc};
 mod parse;
 use parse::parse;
 
+fn test_env() -> @Environment {
+    @Environment::new_global_environment()
+}
+
+fn test_eval( expr:&str, result:&str ) {
+    let evaluated = eval(parse(expr), test_env());
+    let expected = parse(result);
+    if expected != evaluated {
+        fail fmt!("Expected: %s -> Got %s", expected.to_str(), evaluated.to_str())
+    }
+}
+
+fn test_eval_fails( expr:&str, result:&str, reason:&str ) {
+    let evaluated = eval(parse(expr), test_env());
+    let expected = parse(result);
+    if expected == evaluated {
+        fail fmt!("%s should not have evaluated to %s (%s)", expr, result, reason)
+    }
+}
+
 #[test]
 fn test_eval_returns_number_when_passed_number() {
-    let value = eval( Int(1), @Environment::new_global_environment() );
-    match value {
-        Int(1) => (),
-        _ => fail
-    }
+    test_eval( ~"1", ~"1" );
 }
 
 #[test]
 fn test_eval_returns_expression_when_passed_quote() {
-    let value = eval( List( ~[ Symbol(~"quote"), List( ~[ Symbol(~"a") ] ) ] ), 
-    @Environment::new_global_environment() );
-    match value {
-        List( [ Symbol( ~"a" ) ] ) => (),
-        _ => fail
-    }
+    test_eval( ~"(quote (a))", ~"(a)" );
 }
 
 #[test]
 fn test_eval_returns_last_expression_when_passed_begin() {
-    let expression = parse( ~"(begin 1 2 3)" );
-    let value = eval( expression, @Environment::new_global_environment() );
-    match value {
-        Int(3) => (),
-        _ => fail
-    }
+    test_eval( ~"(begin 1 2 3)", ~"3" );
 }
 
 #[test]
 fn test_if_returns_third_part_when_if_is_true() {
-    let expression = parse( ~"(if 1 2 3)" );
-    let value = eval( expression, @Environment::new_global_environment() );
-    match value {
-        Int(2) => (),
-        _ => fail
-    }
+    test_eval( ~"(if 1 2 3)", ~"2" );
 }  
 
 #[test]
 fn test_if_returns_fourth_part_when_if_is_false() {
-    let expression = parse( ~"(if 0 2 3)" );
-    let value = eval( expression, @Environment::new_global_environment() );
-    match value {
-        Int(3) => (),
-        _ => fail
-    }
+    test_eval( ~"(if 0 2 3)", ~"3" );
 }  
 
 #[test]
 fn test_that_if_evaluates_the_then_branch() {
-    let expression = parse( ~"(if 1 (begin 1 2) 7)" );
-    let value = eval( expression, @Environment::new_global_environment() );
-    match value {
-        Int(2) => (),
-        List( [Symbol(~"begin"), Int(1), Int(2)]) => fail ~"If just returned the then branch",
-        _ => fail fmt!("If returned something unusual (%s)", value.to_str())
-    }
+    let expression = ~"(if 1 (begin 1 2) 7)";
+    test_eval_fails( expression, ~"(begin 1 2)", ~"if just returned the raw then" );
+    test_eval( expression, ~"2" ); 
 }
 
 #[test]
 fn test_that_if_evaluates_the_else_branch() {
-    let expression = parse( ~"(if 0 7 (begin 1 2))" );
-    let value = eval( expression, @Environment::new_global_environment() );
-    match value {
-        Int(2) => (),
-        List( [Symbol(~"begin"), Int(1), Int(2)]) => fail ~"If just returned the else branch",
-        _ => fail fmt!("If returned something unusual (%s)", value.to_str())
-    }
+    let expression = ~"(if 0 7 (begin 1 2))";
+    test_eval_fails( expression, ~"(begin 1 2)", ~"if just returned the else branch" );
+    test_eval( expression, ~"2");
 }
 
 #[test]
 fn test_that_if_evaluates_the_test() {
-    let expression = parse( ~"(if (begin 1 0) 1 2)" );
-    let value = eval( expression, @Environment::new_global_environment() );
-    match value {
-        Int(1) => fail ~"If didn't evaluate the test",
-        Int(2) => (),
-        _ => fail fmt!("If returned something unusual (%s)", value.to_str())
-    }
+    let expression = ~"(if (begin 1 0) 1 2)";
+    test_eval_fails( expression, ~"1", ~"if didn't evaluate the test" );
+    test_eval( expression, ~"2" );
 }
 
 #[test]
 fn test_that_bare_symbol_is_interpreted_as_variable() {
-    let env = @Environment::new_global_environment();
+    let env = test_env();
     env.define(~"monkey", Int(10));
     let expression = parse( ~"monkey" );
     let value = eval( expression, env );
@@ -107,14 +91,14 @@ fn test_that_bare_symbol_is_interpreted_as_variable() {
 #[test]
 #[should_fail]
 fn test_that_undefined_symbol_is_an_error() {
-    let env = @Environment::new_global_environment();
+    let env = test_env();
     let expression = parse( ~"monkey" );
     eval( expression, env );
 }
 
 #[test]
 fn test_that_define_can_add_a_variable() {
-    let env = @Environment::new_global_environment();
+    let env = test_env();
     let expression = parse( ~"(define x 10)" );
     let value = eval( expression, env );
     match env.lookup(~"x") {
@@ -126,14 +110,14 @@ fn test_that_define_can_add_a_variable() {
 #[test]
 #[should_fail]
 fn test_that_set_cannot_create_a_variable() {
-    let env = @Environment::new_global_environment();
+    let env = test_env();
     let expression = parse( ~"(set! x 10)" );
     eval( expression, env );
 }
 
 #[test]
 fn test_that_set_can_change_a_variable() {
-    let env = @Environment::new_global_environment();
+    let env = test_env();
     env.define(~"x", Int(100));
     let expression = parse( ~"(set! x 10)" );
     let value = eval( expression, env );
@@ -145,7 +129,7 @@ fn test_that_set_can_change_a_variable() {
 
 #[test]
 fn test_that_set_returns_the_value_not_the_key() {
-    let env = @Environment::new_global_environment();
+    let env = test_env();
     env.define(~"x", Int(100));
     let expression = parse( ~"(set! x 10)" );
     let value = eval( expression, env );
@@ -158,7 +142,7 @@ fn test_that_set_returns_the_value_not_the_key() {
 
 #[test]
 fn test_that_begin_can_handle_one_argument() {
-    let env = @Environment::new_global_environment();
+    let env = test_env();
     let expression = parse( ~"(begin 10)" );
     let value = eval( expression, env );
     match value {
@@ -169,7 +153,7 @@ fn test_that_begin_can_handle_one_argument() {
 
 #[test]
 fn test_that_begin_evaluates_all_arguments() {
-    let env = @Environment::new_global_environment();
+    let env = test_env();
     let expression = parse( ~"(begin (define x 10) x)" );
     let value = eval( expression, env );
     match env.lookup(~"x") {
@@ -184,7 +168,7 @@ fn test_that_begin_evaluates_all_arguments() {
 
 #[test]
 fn test_that_other_symbols_are_evaluated_as_procs() {
-    let env = @Environment::new_global_environment();
+    let env = test_env();
     let expression = parse( ~"(+ 1 2)" );
     let value = eval( expression, env );
     match value {
@@ -195,7 +179,7 @@ fn test_that_other_symbols_are_evaluated_as_procs() {
 
 #[test]
 fn test_that_proc_params_are_evaluated() {
-    let env=@Environment::new_global_environment();
+    let env=test_env();
     let expression = parse( ~"(+ (+ 1 2) 3)" );
     let value = eval (expression, env);
     match value {
@@ -206,7 +190,7 @@ fn test_that_proc_params_are_evaluated() {
 
 #[test]
 fn test_that_lambda_evaluates_to_a_proc() {
-    let env=@Environment::new_global_environment();
+    let env=test_env();
     let expression = parse( ~"(lambda (x) (* x x))" );
     let value = eval(expression, env);
     match value {
@@ -217,7 +201,7 @@ fn test_that_lambda_evaluates_to_a_proc() {
 
 #[test]
 fn test_that_lambda_without_variables_evals() {
-    let env=@Environment::new_global_environment();
+    let env=test_env();
     let expression = parse( ~"( (lambda () (+ 1 1))  )" );
     let value = eval(expression, env);
     match value {
@@ -228,7 +212,7 @@ fn test_that_lambda_without_variables_evals() {
 
 #[test]
 fn test_that_lambda_with_a_variable_evals() {
-    let env=@Environment::new_global_environment();
+    let env=test_env();
     let expression = parse( ~"( (lambda (x) (+ x 1)) 1  )" );
     let value = eval(expression, env);
     match value {

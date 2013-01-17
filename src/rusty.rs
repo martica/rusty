@@ -1,5 +1,4 @@
 extern mod std;
-use task::spawn;
 use io::{Reader,ReaderUtil};
 
 mod environment;
@@ -17,15 +16,15 @@ fn test_env() -> @Environment {
 fn test_eval( expr:&str, result:&str ) {
     let evaluated = eval(parse(expr), test_env());
     let expected = parse(result);
-    if expected != evaluated {
-        fail fmt!("Expected: %s -> Got %s", expected.to_str(), evaluated.to_str())
+    if expected != evaluated.first() {
+        fail fmt!("Expected: %s -> Got %s", expected.to_str(), evaluated.first().to_str())
     }
 }
 
 fn test_eval_fails( expr:&str, result:&str, reason:&str ) {
     let evaluated = eval(parse(expr), test_env());
     let expected = parse(result);
-    if expected == evaluated {
+    if expected == evaluated.first() {
         fail fmt!("%s should not have evaluated to %s (%s)", expr, result, reason)
     }
 }
@@ -83,8 +82,8 @@ fn test_that_bare_symbol_is_interpreted_as_variable() {
     let expression = parse( ~"monkey" );
     let value = eval( expression, env );
     match value {
-        Int(10) => (),
-        _ => fail fmt!("Expected 10 got %s", value.to_str())
+        (Int(10), _) => (),
+        _ => fail fmt!("Expected 10 got %s", value.first().to_str())
     }
 }
 
@@ -103,7 +102,7 @@ fn test_that_define_can_add_a_variable() {
     let value = eval( expression, env );
     match env.lookup(~"x") {
         Some(Int(10)) => (),
-        _ => fail fmt!("Expected 10 got %s", value.to_str())
+        _ => fail fmt!("Expected 10 got %s", value.first().to_str())
     }
 }
 
@@ -123,7 +122,7 @@ fn test_that_set_can_change_a_variable() {
     let value = eval( expression, env );
     match env.lookup(~"x") {
         Some(Int(10)) => (),
-        _ => fail fmt!("Expected 10 got %s", value.to_str())
+        _ => fail fmt!("Expected 10 got %s", value.first().to_str())
     }
 }
 
@@ -134,9 +133,9 @@ fn test_that_set_returns_the_value_not_the_key() {
     let expression = parse( ~"(set! x 10)" );
     let value = eval( expression, env );
     match value {
-        Int(10) => (),
-        Symbol(~"x") => fail ~"set! returned the key, not the value",
-        _ => fail fmt!("Expected 10 got %s", value.to_str())
+        (Int(10), _) => (),
+        (Symbol(~"x"), _) => fail ~"set! returned the key, not the value",
+        _ => fail fmt!("Expected 10 got %s", value.first().to_str())
     }
 }
 
@@ -146,8 +145,8 @@ fn test_that_begin_can_handle_one_argument() {
     let expression = parse( ~"(begin 10)" );
     let value = eval( expression, env );
     match value {
-        Int(10) => (),
-        _ => fail fmt!("Expected 10 got %s", value.to_str())
+        (Int(10), _) => (),
+        _ => fail fmt!("Expected 10 got %s", value.first().to_str())
     }
 }
 
@@ -158,11 +157,11 @@ fn test_that_begin_evaluates_all_arguments() {
     let value = eval( expression, env );
     match env.lookup(~"x") {
         Some(Int(10)) => (),
-        _ => fail fmt!("Expected 10 got %s", value.to_str())
+        _ => fail fmt!("Expected 10 got %s", value.first().to_str())
     }
     match value {
-        Int(10) => (),
-        _ => fail fmt!("Expected 10 got %s", value.to_str())
+        (Int(10), _) => (),
+        _ => fail fmt!("Expected 10 got %s", value.first().to_str())
     }
 }
 
@@ -172,8 +171,8 @@ fn test_that_other_symbols_are_evaluated_as_procs() {
     let expression = parse( ~"(+ 1 2)" );
     let value = eval( expression, env );
     match value {
-        Int(3) => (),
-        _ => fail fmt!("(+ 1 2) became %s", value.to_str())
+        (Int(3), _) => (),
+        _ => fail fmt!("(+ 1 2) became %s", value.first().to_str())
     }
 }
 
@@ -183,8 +182,8 @@ fn test_that_proc_params_are_evaluated() {
     let expression = parse( ~"(+ (+ 1 2) 3)" );
     let value = eval (expression, env);
     match value {
-        Int(6) => (),
-        _ => fail fmt!("(+ (+ 1 2) 3) became %s", value.to_str())
+        (Int(6), _) => (),
+        _ => fail fmt!("(+ (+ 1 2) 3) became %s", value.first().to_str())
     }
 }
 
@@ -194,7 +193,7 @@ fn test_that_lambda_evaluates_to_a_proc() {
     let expression = parse( ~"(lambda (x) (* x x))" );
     let value = eval(expression, env);
     match value {
-        Proc(_) => (),
+       (Proc(_), _) => (),
         _ => fail ~"lambda doesn't turn into a Proc"
     }
 }
@@ -205,8 +204,8 @@ fn test_that_lambda_without_variables_evals() {
     let expression = parse( ~"( (lambda () (+ 1 1))  )" );
     let value = eval(expression, env);
     match value {
-        Int(2) => (),
-        _ => fail fmt!("lambda evaluated to %s", value.to_str())
+        (Int(2), _) => (),
+        _ => fail fmt!("lambda evaluated to %s", value.first().to_str())
     }
 }
 
@@ -216,12 +215,12 @@ fn test_that_lambda_with_a_variable_evals() {
     let expression = parse( ~"( (lambda (x) (+ x 1)) 1  )" );
     let value = eval(expression, env);
     match value {
-        Int(2) => (),
-        _ => fail fmt!("lambda evaluated to %s", value.to_str())
+        (Int(2), _) => (),
+        _ => fail fmt!("lambda evaluated to %s", value.first().to_str())
     }
 }
 
-fn eval( expression:Expression, environment:@Environment ) -> Expression {
+fn eval( expression:Expression, environment:@Environment ) -> (Expression, @Environment ) {
     fn quote(expressions:~[Expression]) -> Expression {
         match expressions {
             [_, expr] => expr,
@@ -233,18 +232,18 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
         for expressions.tail().init().each() |&expression| {
             eval( expression, environment );
         }
-        eval( expressions.last(), environment )
+        eval( expressions.last(), environment ).first()
     }
 
     fn if_(expressions:~[Expression], environment:@Environment) -> Expression {
         match expressions {
             [_, test, true_expr, false_expr] => {
-                let condition = eval(test, environment);
+                let condition = eval(test, environment).first();
                 eval(if condition.to_bool() {
                     true_expr
                 } else {
                     false_expr
-                }, environment)
+                }, environment).first()
             }
             _ => fail ~"Syntax Error: if must take three arguments"
         }
@@ -255,7 +254,7 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
             [_, symbol, value] => {
                 match copy symbol {
                     Symbol( key ) => {
-                        environment.define(key, eval(value, environment));
+                        environment.define(key, eval(value, environment).first());
                         symbol
                     }
                     _ => fail fmt!("Syntax Error: %s takes a symbol as its first argument", function)
@@ -297,7 +296,7 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
     }
 
     fn proc(expressions:~[Expression], environment:@Environment) -> Expression {
-        let exprs = expressions.map(|&expr| eval(expr, environment));
+        let exprs = expressions.map(|&expr| eval(expr, environment).first());
         match exprs.head() {
             Proc( procedure ) => procedure( exprs.tail(), environment ),
             _ => fail fmt!("\"%s\" is not a procedure", exprs.head().to_str())
@@ -314,13 +313,13 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
                             _ => fail ~"lambda params list must be list of symbols"
                         }
                     }
-                    eval(copy expression, local_env)
+                    eval(copy expression, local_env).first()
                 } ),
             _ => fail fmt!("Syntax Error: lambda requires 2 arguments, got \"%u\"", expressions.len()-1 )
         }
     }
 
-    match copy expression {
+    (match copy expression {
         List( expressions ) => {
             match expressions[0] {
                 Symbol(~"quote") => quote(expressions),
@@ -341,30 +340,45 @@ fn eval( expression:Expression, environment:@Environment ) -> Expression {
         _ => {
             expression
         }
-    }
+    }, environment)
+}
+
+struct Env {
+    enclosure:Option<@Env>,
+    mappings:send_map::linear::LinearMap<~str, Expression>
 }
 
 fn main() {
-    fn evaluate( expr:~str ) {
+    fn evaluate( expr:~str, env:Environment ) -> Option<Environment> {
         let sent_expr = copy expr;
-        let result = do task::try {
-            let env = @Environment::new_global_environment();
-            eval( parse(sent_expr), env )
+
+        let (port, chan): (pipes::Port<Environment>, pipes::Chan<Environment>) = pipes::stream();
+        chan.send(env);
+        let result = do task::try |move port| {
+            let env = port.recv();
+            let (result, new_env) = eval( parse(sent_expr), @env );
+            (result, copy *new_env)
         };
         if result.is_ok() {
-            io::println( fmt!("%s -> %s", expr, result.unwrap().to_str()) );
+            let successful_result = result.unwrap();
+            let evaluated_expression = successful_result.first();
+            let new_env = successful_result.second();
+            io::println( fmt!("%s -> %s", expr, evaluated_expression.to_str() ));
+            Some(new_env)
         } else {
             io::println( fmt!("%s gave an error.", expr) );
+            None
         }
     }
 
-    evaluate( ~"(* 4 99)" );    
-    evaluate( ~"(begin (define square (lambda (x) (* x x))) (square 4))" );
-    evaluate( ~"(7 7)" );
-
+    let mut env = Environment::new_global_environment();
     loop {
         io::print("rusty> ");
         let in = io::stdin().read_line();
-        evaluate( in );
+        let result = evaluate( in, copy env );
+        match result {
+            Some(new_env) => env = new_env,
+            None => ()
+        }
     }
 }

@@ -1,4 +1,5 @@
 use send_map::linear::LinearMap;
+mod builtins;
 
 #[test]
 fn test_environment_accepts_new_value_and_returns_it() {
@@ -69,26 +70,9 @@ pub impl Environment {
     static fn new_global_environment() -> Environment {
         let mappings = LinearMap();
         let env = Environment {enclosure:None, mappings:mappings};
-        env.define(~"+", Proc( |addends, _| {
-            let mut sum = 0;
-            for addends.each() |&expr| {
-                match expr {
-                    Int(addend) => sum += addend,
-                    _ => fail ~"+ only accepts integers right now"
-                }
-            }
-            Int(sum)
-            } ));
-        env.define(~"*", Proc( |factors, _| {
-            let mut product = 1;
-            for factors.each() |&expr| {
-                match expr {
-                    Int(factor) => product *= factor,
-                    _ => fail ~"* only accepts integers right now"
-                }
-            }
-            Int(product)
-            } ));
+        env.define(~"+", Proc(builtins::sum));
+        env.define(~"*", Proc(builtins::multiply));
+        env.define(~"-", Proc(builtins::subtract));
         env
     }
 

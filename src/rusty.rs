@@ -343,11 +343,6 @@ fn eval( expression:Expression, environment:@Environment ) -> (Expression, @Envi
     }, environment)
 }
 
-struct Env {
-    enclosure:Option<@Env>,
-    mappings:send_map::linear::LinearMap<~str, Expression>
-}
-
 fn main() {
     fn evaluate( expr:~str, env:Environment ) -> Option<Environment> {
         let sent_expr = copy expr;

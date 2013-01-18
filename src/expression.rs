@@ -7,6 +7,14 @@ pub enum Expression {
 } 
 
 pub impl Expression {
+    fn to_float(&self) -> float {
+        match *self {
+            Int( number ) => number as float,
+            Float( number ) => number,
+            _ => fail
+        }
+    }
+
     fn to_bool(&self) -> bool {
         match *self {
             Int( number ) => 0 != number,

@@ -11,29 +11,18 @@ fn fold_list( args:~[Expression], int_func:fn(int, int) -> int,
 
     for args.tail().each() |&expr| {
         match expr {
-            Int(arg) => {
-                if integral {
-                    int_acc = int_func(int_acc, arg)
-                } else {
-                    float_acc = float_func(float_acc, arg as f64)
-                }
+            Int(arg) if integral => int_acc = int_func(int_acc, arg),
+            Float(arg) if integral => {
+                integral = false;
+                float_acc = float_func(int_acc as f64, arg as f64);
             }
-            Float(arg) => {
-                if integral {
-                    integral = false;
-                    float_acc = float_func(int_acc as f64, arg as f64)
-                } else {
-                    float_acc = float_func(float_acc, arg as f64)
-                }
-            }
-            _ => fail
+            _ => float_acc = float_func(float_acc, expr.to_float() as f64)
         }
     }
 
-    if integral {
-        Int(int_acc)
-    } else {
-        Float(float_acc as float)
+    match integral {
+        true => Int(int_acc),
+        false => Float(float_acc as float)
     }
 }
 
@@ -47,4 +36,17 @@ pub fn multiply( factors:~[Expression], _:@Environment) -> Expression {
 
 pub fn subtract( args:~[Expression], _:@Environment) -> Expression {
     fold_list( args, int::sub, float::sub )
+}
+
+pub fn divide( args:~[Expression], _:@Environment) -> Expression {
+    fold_list( args, int::div, float::div )
+}
+
+pub fn equals( args:~[Expression], _:@Environment) -> Expression {
+    for args.tail().each() |&expr| {
+        if expr != args.head() {
+            return Int(0);
+        }
+    }
+    return Int(1);
 }

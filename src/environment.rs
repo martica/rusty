@@ -73,6 +73,8 @@ pub impl Environment {
         env.define(~"+", Proc(builtins::sum));
         env.define(~"*", Proc(builtins::multiply));
         env.define(~"-", Proc(builtins::subtract));
+        env.define(~"/", Proc(builtins::divide));
+        env.define(~"=", Proc(builtins::equals));
         env
     }
 

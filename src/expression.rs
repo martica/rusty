@@ -6,8 +6,26 @@ pub enum Expression {
     Proc(~fn(~[Expression],@Environment) -> Expression)
 } 
 
+macro_rules! operator_overload {
+    ($operator_name:ident $function_name:ident) => (
+        pub impl Expression: ops::$operator_name<Expression,Expression> {
+            pure fn $function_name(&self, other:&Expression) -> Expression {
+                match (*self, *other) {
+                    (Int(x), Int(y)) => Int(x.$function_name(&y)),
+                    _ => Float(self.to_float().$function_name(&other.to_float()))
+                }
+            }
+        }
+    )
+}
+
+operator_overload!(Add add)
+operator_overload!(Sub sub)
+operator_overload!(Mul mul)
+operator_overload!(Div div)
+
 pub impl Expression {
-    fn to_float(&self) -> float {
+    pure fn to_float(&self) -> float {
         match *self {
             Int( number ) => number as float,
             Float( number ) => number,

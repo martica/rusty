@@ -70,10 +70,10 @@ pub impl Environment {
     static fn new_global_environment() -> Environment {
         let mappings = LinearMap();
         let env = Environment {enclosure:None, mappings:mappings};
-        env.define(~"+", Proc(builtins::sum));
-        env.define(~"*", Proc(builtins::multiply));
-        env.define(~"-", Proc(builtins::subtract));
-        env.define(~"/", Proc(builtins::divide));
+        env.define(~"+", Proc(builtins::add));
+        env.define(~"*", Proc(builtins::mul));
+        env.define(~"-", Proc(builtins::sub));
+        env.define(~"/", Proc(builtins::div));
         env.define(~"=", Proc(builtins::equals));
         env
     }

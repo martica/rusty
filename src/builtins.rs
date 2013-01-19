@@ -19,3 +19,9 @@ pub fn equals( args:~[Expression], _:@Environment) -> Expression {
     }
     return Int(1);
 }
+
+pub fn builtins() -> ~[(~str,~fn(~[Expression], @Environment) -> Expression)] {
+    ~[ (~"+", add), (~"-", sub), (~"*", mul), (~"/", div),
+       (~"=", equals)
+    ]
+}

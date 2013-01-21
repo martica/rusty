@@ -24,8 +24,16 @@ pub fn equals( args:~[Expression], _:@Environment) -> Expression {
     return Bool(true);
 }
 
+pub fn not( args:~[Expression], _:@Environment) -> Expression {
+    if args.len() > 1 {
+        fail fmt!("Built-in function 'not' takes only one argument. It was called with %u '%s'", args.len(), List(args).to_str());
+    }
+
+    return Bool(!args[0].to_bool());
+}
+
 pub fn builtins() -> ~[(~str,~fn(~[Expression], @Environment) -> Expression)] {
     ~[ (~"+", add), (~"-", sub), (~"*", mul), (~"/", div),
-       (~"=", equals)
+       (~"=", equals), (~"not", not)
     ]
 }

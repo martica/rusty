@@ -39,6 +39,11 @@ fn tokenize( input:&str ) -> ~[~str] {
 }
 
 #[test]
+fn test_that_atom_can_read_bools() {
+    assert atom(~"#t") == Bool(true)
+}
+
+#[test]
 fn test_that_atom_can_read_a_symbol() {
     match atom(~"hello") {
         Symbol(~"hello") => (),
@@ -80,6 +85,8 @@ fn test_that_atom_can_read_a_float() {
 
 fn atom( input:~str ) -> Expression {
     match input {
+        ~"#t" => Bool( true ),
+        ~"#f" => Bool( false ),
         ~"+" => Symbol( ~"+" ),
         ~"-" => Symbol( ~"-" ),
         _ => match int::from_str(input) {

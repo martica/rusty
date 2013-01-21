@@ -18,10 +18,10 @@ math_function!(div Int(1))
 pub fn equals( args:~[Expression], _:@Environment) -> Expression {
     for args.tail().each() |&expr| {
         if expr != args.head() {
-            return Int(0);
+            return Bool(false);
         }
     }
-    return Int(1);
+    return Bool(true);
 }
 
 pub fn builtins() -> ~[(~str,~fn(~[Expression], @Environment) -> Expression)] {

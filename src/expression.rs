@@ -1,4 +1,5 @@
 pub enum Expression {
+    Bool(bool),
     Int(int),
     Float(float),
     Symbol(~str),
@@ -35,6 +36,7 @@ pub impl Expression {
 
     fn to_bool(&self) -> bool {
         match *self {
+            Bool( value ) => value, 
             Int( number ) => 0 != number,
             Float( number ) => 0.0 != number,
             _ => true
@@ -43,6 +45,7 @@ pub impl Expression {
 
     fn to_str(&self) -> ~str {
         match copy *self {
+            Bool(value) => if value { ~"#t" } else { ~"#f" },
             Int(number) => { fmt!("%d", number) }
             Float(number) => { 
                 if number == (number as int) as float {
@@ -64,6 +67,7 @@ pub impl Expression {
 impl Expression : cmp::Eq {
     pure fn eq(&self, other:&Expression) -> bool {
         match copy *self {
+            Bool(x) => match *other { Bool(y) => x ==y, _ => false },
             Int(x) => match *other { Int(y) => x == y, _ => false },
             Float(x) => match *other { Float(y) => x == y, _ => false },
             Symbol(x) => match copy *other { Symbol(y) => x == y, _ => false },

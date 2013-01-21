@@ -5,7 +5,7 @@ mod environment;
 use environment::Environment;
 mod expression;
 use expression::Expression; 
-use expression::{Int,Float,Symbol,List,Proc};
+use expression::{Bool,Int,Float,Symbol,List,Proc};
 mod parse;
 use parse::parse;
 

@@ -30,7 +30,7 @@ pub impl Expression {
         match *self {
             Int( number ) => number as float,
             Float( number ) => number,
-            _ => fail
+            _ => fail fmt!("Expected number: %s used in a numeric context", self.to_str())
         }
     }
 
@@ -43,7 +43,7 @@ pub impl Expression {
         }
     }
 
-    fn to_str(&self) -> ~str {
+    pure fn to_str(&self) -> ~str {
         match copy *self {
             Bool(value) => if value { ~"#t" } else { ~"#f" },
             Int(number) => { fmt!("%d", number) }

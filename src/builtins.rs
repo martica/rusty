@@ -115,6 +115,15 @@ pub fn length( args:~[Expression], _:@Environment) -> Expression {
     }
 }
 
+pub fn equal_( args:~[Expression], _:@Environment ) -> Expression {
+    if args.len() != 2 {
+        fail fmt!("Built-in function 'equal?' takes two arguments. It was called with %u '%s'", args.len(), List(args).to_str());
+    }
+
+    Bool(args[0] == args[1])
+}
+
+
 pub fn symbol_( args:~[Expression], _:@Environment) -> Expression {
     if args.len() != 1 {
         fail fmt!("Built-in function 'symbol?' takes only one argument. It was called with %u '%s'", args.len(), List(args).to_str());
@@ -158,6 +167,7 @@ pub fn builtins() -> ~[(~str,~fn(~[Expression], @Environment) -> Expression)] {
        (~"car", car), (~"cdr", cdr),
        (~"cons", cons), (~"append", append),
        (~"list", list), (~"length", length),
+       (~"equal?", equal_),
        (~"symbol?", symbol_),
        (~"list?", list_),
        (~"null?", null_)

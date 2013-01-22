@@ -8,9 +8,10 @@
  * list (works on any arguments)
  * list?, null?, symbol? (works on single argument)
  * cons, car, cdr, append
+ * equal?
  *
  * Coming:
- * equal?, eq?
+ * eq?
  *
  *    {'+':op.add, '-':op.sub, '*':op.mul, '/':op.div, 'not':op.not_,
        '>':op.gt, '<':op.lt, '>=':op.ge, '<=':op.le, '=':op.eq, 

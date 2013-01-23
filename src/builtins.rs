@@ -25,10 +25,10 @@
 macro_rules! math_function {
     ($function:ident $identity:expr) => {
         pub fn $function( args:~[Expression], _:@Environment) -> Expression {
-            match args.len() {
-                0 => $identity,
-                1 => vec::foldl($identity, args, |x, y| {x.$function(y)}),
-                _ => vec::foldl(args.head(), args.tail(), |x, y| {x.$function(y)})
+            match args {
+                [] => $identity,
+                [head] => vec::foldl($identity, ~[head], |x, y| {x.$function(y)}),
+                [head, ..tail] => vec::foldl(head, tail, |x, y| {x.$function(y)})
             }
         }
     }

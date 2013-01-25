@@ -48,18 +48,24 @@ pub fn equals( args:~[Expression], _:@Environment) -> Expression {
     return Bool(true);
 }
 
-pub fn not( args:~[Expression], _:@Environment) -> Expression {
-    if args.len() > 1 {
-        fail fmt!("Built-in function 'not' takes only one argument. It was called with %u '%s'", args.len(), List(args).to_str());
+pub fn assert_number_of_args( function:~str, min:uint, max:uint, args:~[Expression] ) {
+    if args.len() > max || args.len() < min {
+        if max == min {
+            fail fmt!("Built-in function '%s' takes only %u argument%s. It was called with %u '%s'", function, max, if max==1 {~""} else {~"s"}, args.len(), List(args).to_str());
+        } else {
+            fail fmt!("Built-in function '%s' takes between %u and %u arguments. It was called with %u '%s'", function, min, max, args.len(), List(args).to_str());
+        } 
     }
+}
+
+pub fn not( args:~[Expression], _:@Environment) -> Expression {
+    assert_number_of_args( ~"not", 1, 1, copy args );
 
     return Bool(!args[0].to_bool());
 }
 
 pub fn car( args:~[Expression], _:@Environment) -> Expression {
-    if args.len() != 1 {
-        fail fmt!("Built-in function 'car' takes only one argument. It was called with %u '%s'", args.len(), List(args).to_str());
-    }
+    assert_number_of_args( ~"car", 1, 1, copy args );
 
     match copy args[0] {
         List(list) => list.head(),
@@ -68,9 +74,7 @@ pub fn car( args:~[Expression], _:@Environment) -> Expression {
 }
 
 pub fn cdr( args:~[Expression], _:@Environment) -> Expression {
-    if args.len() != 1 {
-        fail fmt!("Built-in function 'cdr' takes only one argument. It was called with %u '%s'", args.len(), List(args).to_str());
-    }
+    assert_number_of_args( ~"cdr", 1, 1, copy args );
 
     match copy args[0] {
         List(list) => List(list.tail()),
@@ -79,9 +83,7 @@ pub fn cdr( args:~[Expression], _:@Environment) -> Expression {
 }
 
 pub fn cons( args:~[Expression], _:@Environment) -> Expression {
-    if args.len() != 2 {
-        fail fmt!("Built-in function 'cons' takes two arguments. It was called with %u '%s'", args.len(), List(args).to_str());
-    }
+    assert_number_of_args( ~"cons", 2, 2, copy args );
 
     match copy args[1] {
         List(list) => List( ~[args[0]] + list ),
@@ -90,9 +92,7 @@ pub fn cons( args:~[Expression], _:@Environment) -> Expression {
 }
 
 pub fn append( args:~[Expression], _:@Environment) -> Expression {
-    if args.len() != 2 {
-        fail fmt!("Built-in function 'append' takes two arguments. It was called with %u '%s'", args.len(), List(args).to_str());
-    }
+    assert_number_of_args( ~"append", 2, 2, copy args );
 
     match copy args[0] {
         List(list1) => {
@@ -106,9 +106,7 @@ pub fn append( args:~[Expression], _:@Environment) -> Expression {
 }
 
 pub fn length( args:~[Expression], _:@Environment) -> Expression {
-    if args.len() != 1 {
-        fail fmt!("Built-in function 'length' takes only one argument. It was called with %u '%s'", args.len(), List(args).to_str());
-    }
+    assert_number_of_args( ~"length", 1, 1, copy args );
     
     match copy args[0] {
         List(list) => Int(list.len() as int),
@@ -117,19 +115,15 @@ pub fn length( args:~[Expression], _:@Environment) -> Expression {
 }
 
 pub fn equal_( args:~[Expression], _:@Environment ) -> Expression {
-    if args.len() != 2 {
-        fail fmt!("Built-in function 'equal?' takes two arguments. It was called with %u '%s'", args.len(), List(args).to_str());
-    }
-
+    assert_number_of_args( ~"equal?", 2, 2, copy args );
+    
     Bool(args[0] == args[1])
 }
 
 
 pub fn symbol_( args:~[Expression], _:@Environment) -> Expression {
-    if args.len() != 1 {
-        fail fmt!("Built-in function 'symbol?' takes only one argument. It was called with %u '%s'", args.len(), List(args).to_str());
-    }
-
+    assert_number_of_args( ~"symbol?", 1, 1, copy args );
+    
     match args[0] {
         Symbol(_) => Bool(true),
         _ => Bool(false)
@@ -137,10 +131,8 @@ pub fn symbol_( args:~[Expression], _:@Environment) -> Expression {
 }
 
 pub fn list_( args:~[Expression], _:@Environment) -> Expression {
-    if args.len() != 1 {
-        fail fmt!("Built-in function 'list?' takes only one argument. It was called with %u '%s'", args.len(), List(args).to_str());
-    }
-
+    assert_number_of_args( ~"list?", 1, 1, copy args );
+    
     match args[0] {
         List(_) => Bool(true),
         _ => Bool(false)
@@ -148,10 +140,8 @@ pub fn list_( args:~[Expression], _:@Environment) -> Expression {
 }
 
 pub fn null_( args:~[Expression], _:@Environment) -> Expression {
-    if args.len() != 1 {
-        fail fmt!("Built-in function 'null?' takes only one argument. It was called with %u '%s'", args.len(), List(args).to_str());
-    }
-
+    assert_number_of_args( ~"null?", 1, 1, copy args );
+    
     match copy args[0] {
         List(list) => Bool(list.len() == 0),
         _ => Bool(false)

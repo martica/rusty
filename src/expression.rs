@@ -4,7 +4,7 @@ pub enum Expression {
     Float(float),
     Symbol(~str),
     List(~[Expression]),
-    Proc(~fn(~[Expression],@Environment) -> Expression)
+    Proc(~fn(~[Expression],@Environment) -> Expression, (uint,uint))
 } 
 
 macro_rules! operator_overload {
@@ -26,6 +26,13 @@ operator_overload!(Mul mul)
 operator_overload!(Div div)
 
 pub impl Expression {
+    static fn new_proc( function:~fn(~[Expression],@Environment) -> Expression) -> Expression {
+        let ptr:(uint,uint) = unsafe {
+            cast::reinterpret_cast(&function)
+        };
+        Proc( function, ptr )
+    }
+
     pure fn to_float(&self) -> float {
         match *self {
             Int( number ) => number as float,
@@ -59,7 +66,7 @@ pub impl Expression {
                 let strings = expressions.map( | &expr | {expr.to_str()} );
                 ~"(" + strings.foldl(~"", |&x, &y| { x + ~" " + y } ).trim() + ~")"
             }
-            Proc(_) => { ~"procedure" }
+            Proc(_,x) => { fmt!("procedure: %s", x.to_str()) }
         }
     }
 }
@@ -72,7 +79,8 @@ impl Expression : cmp::Eq {
             Float(x) => match *other { Float(y) => x == y, _ => false },
             Symbol(x) => match copy *other { Symbol(y) => x == y, _ => false },
             List(x) => match copy *other { List(y) => x == y, _ => false },
-            _ => false
+            Proc(_,x) => match copy *other { Proc(_,y) => x == y, _=> false },
+            //_ => false
         }
     }
 

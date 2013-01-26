@@ -6,6 +6,7 @@ use environment::Environment;
 mod expression;
 use expression::Expression; 
 use expression::{Bool,Int,Float,Symbol,List,Proc};
+use expression::Expression::new_proc;
 mod parse;
 use parse::parse;
 
@@ -193,7 +194,7 @@ fn test_that_lambda_evaluates_to_a_proc() {
     let expression = parse( ~"(lambda (x) (* x x))" );
     let value = eval(expression, env);
     match value {
-       (Proc(_), _) => (),
+       (Proc(_,_), _) => (),
         _ => fail ~"lambda doesn't turn into a Proc"
     }
 }
@@ -298,14 +299,14 @@ fn eval( expression:Expression, environment:@Environment ) -> (Expression, @Envi
     fn proc(expressions:~[Expression], environment:@Environment) -> Expression {
         let exprs = expressions.map(|&expr| eval(expr, environment).first());
         match exprs.head() {
-            Proc( procedure ) => procedure( exprs.tail(), environment ),
+            Proc( procedure, _ ) => procedure( exprs.tail(), environment ),
             _ => fail fmt!("\"%s\" is not a procedure", exprs.head().to_str())
         }
     }
 
     fn lambda(expressions:~[Expression], _:@Environment) -> Expression {
         match copy expressions {
-            [_, List(param_names), expression] => Proc( |param_values, env| { 
+            [_, List(param_names), expression] => new_proc( |param_values, env| { 
                     let local_env = @Environment::new( env );
                     for vec::zip(copy param_names, param_values).each |param| {
                         match param.first() {

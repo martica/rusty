@@ -71,7 +71,7 @@ pub impl Environment {
         let mappings = LinearMap();
         let env = Environment {enclosure:None, mappings:mappings};
         for builtins::builtins().each() |&(name, function)| {
-            env.define(name, Proc(function));
+            env.define(name, new_proc(function));
         }
         env
     }

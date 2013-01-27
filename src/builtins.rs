@@ -152,12 +152,49 @@ pub fn list( args:~[Expression], _:@Environment) -> Expression {
     List(args)
 }
 
+pub fn eq_( args:~[Expression], _:@Environment) -> Expression {
+    assert_number_of_args( ~"eq?", 2, 2, copy args );
+
+    Bool( args[0] == args[1] )
+}
+
+pub fn eqv_( args:~[Expression], _env:@Environment) -> Expression {
+    assert_number_of_args( ~"eq?", 2, 2, copy args );
+
+    eq_( args, _env )
+}
+
+#[test]
+fn test_eqv_() {
+    fn eqv__( args:~[Expression] ) -> Expression {
+        eqv_( args, @Environment::new_global_environment() )
+    }
+
+    assert( Bool(true) == eqv__( ~[ Bool(true), Bool(true) ] ) );
+    assert( Bool(true) == eqv__( ~[ Bool(false), Bool(false) ] ) );
+    assert( Bool(false) == eqv__( ~[ Bool(true), Bool(false) ] ) );
+    assert( Bool(true) == eqv__( ~[ Symbol(~"a"), Symbol(~"a") ] ) );
+    assert( Bool(false) == eqv__( ~[ Symbol(~"b"), Symbol(~"a") ] ) );
+    assert( Bool(true) == eqv__( ~[ Int(1), Int(1) ] ) );
+    assert( Bool(false) == eqv__( ~[ Int(2), Int(1) ] ) );
+    assert( Bool(true) == eqv__( ~[ Float(1.0), Float(1.0) ] ) );
+    assert( Bool(false) == eqv__( ~[ Float(2.0), Float(1.0) ] ) );
+    assert( Bool(true) == eqv__( ~[ List( ~[] ), List( ~[] ) ] ) );
+    assert( Bool(false) == eqv__( ~[ List( ~[Int(1)] ), List( ~[] ) ] ) );
+
+    let proc = eval( parse("(lambda (x) (* x x))"), @Environment::new_global_environment() ).first();
+    let proc2 = eval( parse("(lambda (x) (* x x))"), @Environment::new_global_environment() ).first();
+    assert( Bool(true) == eqv__( ~[ proc, proc ] ) );
+    assert( Bool(false) == eqv__( ~[ proc, proc2 ] ) );
+}
+
 pub fn builtins() -> ~[(~str,~fn(~[Expression], @Environment) -> Expression)] {
     ~[ (~"+", add), (~"-", sub), (~"*", mul), (~"/", div),
        (~"=", equals), (~"not", not),
        (~"car", car), (~"cdr", cdr),
        (~"cons", cons), (~"append", append),
        (~"list", list), (~"length", length),
+       (~"eq?", eq_), (~"eqv?", eqv_),
        (~"equal?", equal_),
        (~"symbol?", symbol_),
        (~"list?", list_),

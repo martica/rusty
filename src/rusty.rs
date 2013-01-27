@@ -31,6 +31,11 @@ fn test_eval_fails( expr:&str, result:&str, reason:&str ) {
 }
 
 #[test]
+fn test_eval_empty_list_returns_itself() {
+    test_eval( ~"()", ~"()" );
+}
+
+#[test]
 fn test_eval_returns_number_when_passed_number() {
     test_eval( ~"1", ~"1" );
 }
@@ -322,14 +327,18 @@ fn eval( expression:Expression, environment:@Environment ) -> (Expression, @Envi
 
     (match copy expression {
         List( expressions ) => {
-            match expressions[0] {
-                Symbol(~"quote") => quote(expressions),
-                Symbol(~"begin") => begin(expressions, environment),
-                Symbol(~"if") => if_(expressions, environment),
-                Symbol(~"define") => define(expressions, environment),
-                Symbol(~"set!") => set_bang(expressions, environment),
-                Symbol(~"lambda") => lambda(expressions, environment),
-                _ => proc(expressions, environment) 
+            if expressions.len() == 0 {
+                expression
+            } else {
+                match expressions[0] {
+                    Symbol(~"quote") => quote(expressions),
+                    Symbol(~"begin") => begin(expressions, environment),
+                    Symbol(~"if") => if_(expressions, environment),
+                    Symbol(~"define") => define(expressions, environment),
+                    Symbol(~"set!") => set_bang(expressions, environment),
+                    Symbol(~"lambda") => lambda(expressions, environment),
+                    _ => proc(expressions, environment) 
+                }
             }
         }
         Symbol( symbol ) => {

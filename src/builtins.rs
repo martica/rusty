@@ -188,6 +188,30 @@ fn test_eqv_() {
     assert( Bool(false) == eqv__( ~[ proc, proc2 ] ) );
 }
 
+#[test]
+fn test_math() {
+    test_eval( ~"(+ 4 2)", ~"6" );
+    test_eval( ~"(- 4 2)", ~"2" );
+    test_eval( ~"(/ 4 2)", ~"2" );
+    test_eval( ~"(* 4 2)", ~"8" );
+    test_eval( ~"(= 4 2)", ~"#f" );
+    test_eval( ~"(= 4 4)", ~"#t" );
+}
+
+#[test]
+fn test_list() {
+    test_eval( ~"(list? (quote ()))", ~"#t" );
+    test_eval( ~"(car (quote (1 2 3)))", ~"1" );
+    test_eval( ~"(cdr (quote (1 2 3)))", ~"(2 3)" );
+    test_eval( ~"(cons 1 (quote (2 3)))", ~"(1 2 3)" );
+    test_eval( ~"(list 1)", ~"(1)" );
+    test_eval( ~"(list)", ~"()" );
+    test_eval( ~"(list 1 2 3)", ~"(1 2 3)" );
+    test_eval( ~"(length (list))", ~"0" );
+    test_eval( ~"(length (list 1))", ~"1" );
+    test_eval( ~"(length (list 1 2))", ~"2" );
+}
+
 pub fn builtins() -> ~[(~str,~fn(~[Expression], @Environment) -> Expression)] {
     ~[ (~"+", add), (~"-", sub), (~"*", mul), (~"/", div),
        (~"=", equals), (~"not", not),

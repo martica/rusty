@@ -39,6 +39,29 @@ math_function!(sub Int(0))
 math_function!(mul Int(1))
 math_function!(div Int(1))
 
+pub fn assert_min_number_of_args( function:~str, min:uint, args:~[Expression] ) {
+    if args.len() < min {
+        fail fmt!("Built-in function '%s' takes at least %u argument%s. It was called with %u '%s'", function, min, if min==1 {~""} else {~"s"}, args.len(), List(args).to_str());
+    }
+}
+
+macro_rules! comparison_function {
+    ($function:ident $name:expr) => {
+        pub fn $function( args:~[Expression], _:@Environment ) -> Expression {
+            assert_min_number_of_args( $name, 2, copy args );
+            
+            let comparisons = vec::map2( args.init(), args.tail(),
+                                         |a, b| {a.$function(b)});
+            Bool(vec::foldl(true, comparisons, |x, &y| {x && y}))
+        }
+    }
+}
+
+comparison_function!(lt ~"<")
+comparison_function!(le ~"<=")
+comparison_function!(gt ~">")
+comparison_function!(ge ~">=")
+
 pub fn equals( args:~[Expression], _:@Environment) -> Expression {
     for args.tail().each() |&expr| {
         if expr != args.head() {
@@ -214,6 +237,7 @@ fn test_list() {
 
 pub fn builtins() -> ~[(~str,~fn(~[Expression], @Environment) -> Expression)] {
     ~[ (~"+", add), (~"-", sub), (~"*", mul), (~"/", div),
+       (~"<", lt), (~"<=", le), (~">", gt), (~">=", ge),
        (~"=", equals), (~"not", not),
        (~"car", car), (~"cdr", cdr),
        (~"cons", cons), (~"append", append),

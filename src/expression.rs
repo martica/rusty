@@ -25,6 +25,33 @@ operator_overload!(Sub sub)
 operator_overload!(Mul mul)
 operator_overload!(Div div)
 
+pub impl Expression: cmp::Ord {
+    pure fn lt(&self, other: &Expression) -> bool {
+        match (*self, *other) {
+            (Int(x), Int(y)) => x.lt(&y),
+            _ => self.to_float().lt(&other.to_float())
+        }
+    }
+    pure fn le(&self, other: &Expression) -> bool {
+        match (*self, *other) {
+            (Int(x), Int(y)) => x.le(&y),
+            _ => self.to_float().le(&other.to_float())
+        }
+    }
+    pure fn gt(&self, other: &Expression) -> bool {
+        match (*self, *other) {
+            (Int(x), Int(y)) => x.gt(&y),
+            _ => self.to_float().gt(&other.to_float())
+        }
+    }
+    pure fn ge(&self, other: &Expression) -> bool {
+        match (*self, *other) {
+            (Int(x), Int(y)) => x.ge(&y),
+            _ => self.to_float().ge(&other.to_float())
+        }
+    }
+}
+
 pub impl Expression {
     static fn new_proc( function:~fn(~[Expression],@Environment) -> Expression) -> Expression {
         let ptr:(uint,uint) = unsafe {

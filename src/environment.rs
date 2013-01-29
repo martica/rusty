@@ -80,4 +80,25 @@ pub impl Environment {
         let mappings = LinearMap();
         Environment {enclosure:Some(enclosure), mappings:mappings}
     }
+
+}
+
+pub fn env_with_new_global(env:@Environment, global:@Environment) -> @Environment {
+    match env.enclosure {
+        Some(parent) => {
+            let enclosure = match parent.enclosure {
+                Some(grandparent) => env_with_new_global(parent, global),
+                _ => global
+            };
+            @Environment {enclosure:Some(enclosure), mappings:copy env.mappings}
+        }
+        _ => @Environment::new(global)
+    }
+}
+
+pub fn topmost_env(env:@Environment) -> @Environment {
+    match env.enclosure {
+        Some(parent) => topmost_env(parent),
+        _ => env
+    }
 }

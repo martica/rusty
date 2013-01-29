@@ -312,8 +312,9 @@ fn eval( expression:Expression, environment:@Environment ) -> (Expression, @Envi
     fn lambda(expressions:~[Expression], env:@Environment) -> Expression {
         let send_env = ~copy *env;
         match copy expressions {
-            [_, List(param_names), expression] => new_proc( |param_values, _| { 
-                    let local_env = @Environment::new( @copy *send_env );
+            [_, List(param_names), expression] => new_proc( |param_values, env| { 
+                    let global_env = environment::topmost_env(env);
+                    let local_env = environment::env_with_new_global( @copy *send_env, @copy *global_env );
                     for vec::zip(copy param_names, param_values).each |param| {
                         match param.first() {
                             Symbol(key) => local_env.define( key, param.second() ),

@@ -1,104 +1,148 @@
 use send_map::linear::LinearMap;
 mod builtins;
 
-#[test]
-fn test_environment_accepts_new_value_and_returns_it() {
-    let env:Environment = Environment::new_global_environment();
-    env.define( ~"monkey", Int(1) );
-    env.define( ~"turkey", Int(2) );
-    match env.lookup( ~"monkey" ) {
-        Some(Int(1)) => (),
-        _ => fail ~"Monkey wasn't an Int(1)"
-    }
-    match env.lookup( ~"turkey" ) {
-        Some(Int(2)) => (),
-        _ => fail ~"Turkey wasn't an Int(2)"
-    }
-}  
-
-#[test]
-fn test_environment_allows_values_to_change() {
-    let env:Environment = Environment::new_global_environment();
-    env.define( ~"monkey", Int(1) );
-    match env.lookup( ~"monkey" ) {
-        Some(Int(1)) => (),
-        _ => fail ~"Monkey wasn't an Int(1) before mutation"
-    }
-    env.define( ~"monkey", Int(2) );
-    match env.lookup( ~"monkey" ) {
-        Some(Int(2)) => (),
-        _ => fail ~"Monkey wasn't an Int(2) after mutation"
-    }
-}
-
-#[test]
-fn test_environment_checks_enclosing_environment() {
-    let enclosure:@Environment = @Environment::new_global_environment();
-    enclosure.define( ~"monkey", Int(1) );
-    let env:Environment = Environment::new(enclosure);
-    match env.lookup( ~"monkey" ) {
-        Some(Int(1)) => (),
-        _ => fail ~"monkey wasn't found in env or enclosure... he's escaped?"
-    }
-}
-
 pub struct Environment {
-    enclosure:Option<@Environment>,
-    mut mappings:LinearMap<~str,Expression>
+    mappings:@[@mut LinearMap<~str,Expression>]
 }
 
 pub impl Environment {
-    fn define(&self, key:~str, value:Expression) {
-        self.mappings.insert(key, value);
+    fn lookup( &self, key:~str ) -> Option<Expression> {
+        for self.mappings.each() |&mapping| {
+            match mapping.find(&key) {
+                None => (),
+                value => return value
+            }
+        }
+
+        None
     }
 
-    fn check_enclosure(&self, key:~str) -> Option<Expression> {
-        match copy self.enclosure {
-            Some(environment) => environment.lookup(key),
-            _ => None
-        }
+    fn define( &self, key:~str, value:Expression ) {
+        let map = self.mappings.head();
+        map.insert(key, value);
     }
 
-    fn lookup(&self, key:~str) -> Option<Expression> {
-        let local_definition = self.mappings.find(&key);
-        match local_definition {
-            None => self.check_enclosure(key),
-            _ => local_definition
+    fn reset( &self, key:~str, value:Expression ) {
+        for self.mappings.each() |&mapping| {
+            match mapping.find(&key) {
+                None => (),
+                Some(_) => {
+                     mapping.insert(copy key, copy value);
+                     return;
+                }
+            }
         }
+
+        fail ~"Attempt to use set! with an undefined variable"
     }
 
     static fn new_global_environment() -> Environment {
-        let mappings = LinearMap();
-        let env = Environment {enclosure:None, mappings:mappings};
+        let mapping:LinearMap<~str,Expression> = LinearMap();
+        let env = Environment {mappings:@[@mut mapping]};
         for builtins::builtins().each() |&(name, function)| {
             env.define(name, new_proc(function));
         }
         env
+        //Environment {mappings:@[@mut mapping]}
     }
 
-    static fn new(enclosure:@Environment) -> Environment {
-        let mappings = LinearMap();
-        Environment {enclosure:Some(enclosure), mappings:mappings}
-    }
-
-}
-
-pub fn env_with_new_global(env:@Environment, global:@Environment) -> @Environment {
-    match env.enclosure {
-        Some(parent) => {
-            let enclosure = match parent.enclosure {
-                Some(grandparent) => env_with_new_global(parent, global),
-                _ => global
-            };
-            @Environment {enclosure:Some(enclosure), mappings:copy env.mappings}
-        }
-        _ => @Environment::new(global)
+    static fn new(enclosure:Environment) -> Environment {
+        let mapping:LinearMap<~str,Expression> = LinearMap();
+        Environment {mappings:@[@mut mapping] + enclosure.mappings}
     }
 }
 
-pub fn topmost_env(env:@Environment) -> @Environment {
-    match env.enclosure {
-        Some(parent) => topmost_env(parent),
-        _ => env
+#[test]
+fn test_environments_with_shared_mapping_sets_share_changes() {
+    let global_env:Environment = Environment::new_global_environment();
+    global_env.define( ~"monkey", Int(1) );
+    let sub_env1 = Environment::new(global_env);
+    let sub_env2 = Environment::new(global_env);
+    sub_env1.reset( ~"monkey", Int(2) );
+    match sub_env2.lookup( ~"monkey" ) {
+        Some(Int(1)) => fail ~"My monkeys are out of sync",
+        Some(Int(2)) => (),
+        None =>  fail ~"Monkey not found.",
+        _ => fail ~"Monkey of unexpected value"
+    }
+}
+
+#[test]
+fn test_changes_to_new_scope_are_not_reflected_in_original_env() {
+    let env:Environment = Environment::new_global_environment();
+    env.define( ~"monkey", Int(1) );
+    let sub_env = Environment::new(env);
+    sub_env.define( ~"monkey", Int(2) );
+    match env.lookup( ~"monkey" ) {
+        Some(Int(1)) => (),
+        Some(Int(2)) => fail ~"My monkey was changed!",
+        Some(_) => fail ~"This is not my monkey",
+        _ => fail ~"Where is my monkey?"
+    }
+}
+
+#[test]
+fn test_changes_to_nested_scope_are_reflected_in_original_env() {
+    let env:Environment = Environment::new_global_environment();
+    env.define( ~"monkey", Int(1) );
+    let sub_env = Environment::new(env);
+    sub_env.reset( ~"monkey", Int(2) );
+    match env.lookup( ~"monkey" ) {
+        Some(Int(2)) => (),
+        Some(Int(1)) => fail ~"My monkey was cloned?",
+        Some(_) => fail ~"This is not my monkey",
+        _ => fail ~"Where is my monkey?"
+    }
+}
+
+#[test]
+fn test_environment_check_nested_scopes() {
+    let env:Environment = Environment::new_global_environment();
+    env.define( ~"monkey", Int(1) );
+    let sub_env = Environment::new(env);
+    match sub_env.lookup( ~"monkey" ) {
+        Some(Int(1)) => (),
+        Some(_) => fail ~"This is not my monkey",
+        _ => fail ~"Where is my monkey?"
+    }
+}
+
+#[test]
+fn test_new_environment_allow_reset_of_defined_variable() {
+    let env:Environment = Environment::new_global_environment();
+    env.define( ~"monkey", Int(1) );
+    env.reset( ~"monkey", Int(2) );
+    match env.lookup( ~"monkey" ) {
+        Some(Int(1)) => fail ~"Monkey didn't change",
+        Some(Int(2)) => (),
+        Some(_) => fail ~"Monkey changed unrecognizably",
+        None => fail ~"Monkey got lost?"
+    }
+}
+
+#[test]
+#[should_fail]
+fn test_new_environment_fails_to_reset_value() {
+    let env:Environment = Environment::new_global_environment();
+    env.reset( ~"monkey", Int(2) );
+}
+
+#[test]
+fn test_new_environment_accepts_new_value() {
+    let env:Environment = Environment::new_global_environment();
+    env.define( ~"monkey", Int(1) );
+    match env.lookup( ~"monkey" ) {
+        Some(Int(1)) => (),
+        Some(_) => fail ~"Monkey mutated?",
+        None => fail ~"Monkey got lost?"
+    }
+}
+
+#[test]
+fn test_new_environment_is_empty() {
+    let env:Environment = Environment::new_global_environment();
+    match env.lookup( ~"monkey" ) {
+        Some(_) => fail ~"Monkey already present?",
+        None => ()
     }
 }

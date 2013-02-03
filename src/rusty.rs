@@ -5,7 +5,7 @@ mod environment;
 use environment::Environment;
 mod expression;
 use expression::Expression; 
-use expression::{Bool,Int,Float,Symbol,List,Proc};
+use expression::{Bool,Int,Float,Symbol,List,Proc,Error,Lambda};
 use expression::Expression::new_proc;
 mod parse;
 use parse::parse;
@@ -27,6 +27,14 @@ fn test_eval_fails( expr:&str, result:&str, reason:&str ) {
     let expected = parse(result);
     if expected == evaluated.first() {
         fail fmt!("%s should not have evaluated to %s (%s)", expr, result, reason)
+    }
+}
+
+fn test_eval_to_error( expr:&str, reason:&str ) {
+    let evaluated = eval(parse(expr), test_env());
+    match evaluated.first() {
+        Error(_) => (),
+        _ => fail fmt!("%s should have returned an error: %s", expr, reason)
     }
 }
 
@@ -94,11 +102,9 @@ fn test_that_bare_symbol_is_interpreted_as_variable() {
 }
 
 #[test]
-#[should_fail]
 fn test_that_undefined_symbol_is_an_error() {
-    let env = test_env();
-    let expression = parse( ~"monkey" );
-    eval( expression, env );
+    let expression = ~"monkey";
+    test_eval_to_error( expression, ~"Undefined symbol wasn't an error" );
 }
 
 #[test]
@@ -113,11 +119,14 @@ fn test_that_define_can_add_a_variable() {
 }
 
 #[test]
-#[should_fail]
 fn test_that_set_cannot_create_a_variable() {
     let env = test_env();
     let expression = parse( ~"(set! x 10)" );
-    eval( expression, env );
+    let value = eval( expression, env );
+    match value.first() {
+        Error(_) => (),
+        _ => fail ~"set! created a variable"
+    }
 }
 
 #[test]
@@ -194,12 +203,12 @@ fn test_that_proc_params_are_evaluated() {
 }
 
 #[test]
-fn test_that_lambda_evaluates_to_a_proc() {
+fn test_that_lambda_evaluates_to_a_lambda() {
     let env=test_env();
     let expression = parse( ~"(lambda (x) (* x x))" );
     let value = eval(expression, env);
     match value {
-       (Proc(_,_), _) => (),
+       (Lambda(_,_,_), _) => (),
         _ => fail ~"lambda doesn't turn into a Proc"
     }
 }
@@ -230,7 +239,7 @@ fn eval( expression:Expression, environment:@Environment ) -> (Expression, @Envi
     fn quote(expressions:~[Expression]) -> Expression {
         match expressions {
             [_, expr] => expr,
-            _ => fail ~"Syntax Error: quote must take a single argument"
+            _ => Error( ~"Syntax Error: quote must take a single argument" )
         }
     }
 
@@ -251,7 +260,7 @@ fn eval( expression:Expression, environment:@Environment ) -> (Expression, @Envi
                     false_expr
                 }, environment).first()
             }
-            _ => fail ~"Syntax Error: if must take three arguments"
+            _ => Error( ~"Syntax Error: if must take three arguments" )
         }
     }
 
@@ -263,10 +272,10 @@ fn eval( expression:Expression, environment:@Environment ) -> (Expression, @Envi
                         environment.reset(key, eval(value, environment).first());
                         symbol
                     }
-                    _ => fail fmt!("Syntax Error: %s takes a symbol as its first argument", function)
+                    _ => Error( fmt!("Syntax Error: %s takes a symbol as its first argument", function) )
                 }
             }
-            _ => fail fmt!("Syntax Error: %s must take two arguments", function)
+            _ => Error( fmt!("Syntax Error: %s must take two arguments", function) )
         }
     }
 
@@ -278,10 +287,10 @@ fn eval( expression:Expression, environment:@Environment ) -> (Expression, @Envi
                         environment.define(key, eval(value, environment).first());
                         symbol
                     }
-                    _ => fail fmt!("Syntax Error: %s takes a symbol as its first argument", function)
+                    _ => Error( fmt!("Syntax Error: %s takes a symbol as its first argument", function) )
                 }
             }
-            _ => fail fmt!("Syntax Error: %s must take two arguments", function)
+            _ => Error( fmt!("Syntax Error: %s must take two arguments", function) )
         }
     }
 
@@ -295,7 +304,7 @@ fn eval( expression:Expression, environment:@Environment ) -> (Expression, @Envi
                 match copy symbol {
                     Symbol( key ) => {
                         match environment.lookup( copy key )  {
-                            None => fail ~"Syntax Error: set! cannot create a variable",
+                            None => return Error( ~"Syntax Error: set! cannot create a variable" ),
                             _ => ()
                         }
                     }
@@ -309,10 +318,10 @@ fn eval( expression:Expression, environment:@Environment ) -> (Expression, @Envi
             Symbol( key ) => {
                 match environment.lookup( copy key ) {
                     Some( value ) => value,
-                    None => fail
+                    None => Error( ~"System Error: Reset variable failed to set the new value" )
                 }
             }
-            _ => fail
+            _ => Error( ~"System Error: Reset variable didn't return a symbol" )
         }
     }
 
@@ -320,23 +329,36 @@ fn eval( expression:Expression, environment:@Environment ) -> (Expression, @Envi
         let exprs = expressions.map(|&expr| eval(expr, environment).first());
         match exprs.head() {
             Proc( procedure, _ ) => procedure( exprs.tail(), environment ),
-            _ => fail fmt!("\"%s\" is not a procedure", exprs.head().to_str())
+            Lambda( expr, variables, env ) => {
+                let local_env = @Environment::new( *env );
+                for vec::zip(copy variables, exprs.tail()).each |param| {
+                    match param.first() {
+                        Symbol(key) => local_env.define(key, param.second()),
+                        _ => return Error( ~"Variable names must be symbols" )
+                    }
+                }
+                eval( *expr, local_env).first()
+            }
+            _ => Error( fmt!("\"%s\" is not a procedure", exprs.head().to_str()) )
         }
     }
 
-    fn lambda(expressions:~[Expression], _env:@Environment) -> Expression {
+    fn lambda(expressions:~[Expression], env:@Environment) -> Expression {
         match copy expressions {
-            [_, List(param_names), expression] => new_proc( |param_values, env| { 
-                    let local_env = @Environment::new( copy *env );
-                    for vec::zip(copy param_names, param_values).each |param| {
-                        match param.first() {
-                            Symbol(key) => local_env.define( key, param.second() ),
-                            _ => fail ~"lambda params list must be list of symbols"
-                        }
-                    }
-                    eval(copy expression, local_env).first()
-                } ),
-            _ => fail fmt!("Syntax Error: lambda requires 2 arguments, got \"%u\"", expressions.len()-1 )
+            [_, List(param_names), expression] => {
+                Lambda(@expression, param_names, env)
+            }
+//            new_proc( |param_values, _| { 
+//                    let local_env = @Environment::new( copy *env );
+//                    for vec::zip(copy param_names, param_values).each |param| {
+//                        match param.first() {
+//                            Symbol(key) => local_env.define( key, param.second() ),
+//                            _ => return Error( ~"lambda params list must be list of symbols" )
+//                        }
+//                    }
+//                    eval(copy expression, local_env).first()
+//                } ),
+            _ => Error( fmt!("Syntax Error: lambda requires 2 arguments, got \"%u\"", expressions.len()-1 ) )
         }
     }
 
@@ -359,7 +381,7 @@ fn eval( expression:Expression, environment:@Environment ) -> (Expression, @Envi
         Symbol( symbol ) => {
             match environment.lookup( copy symbol ) {
                 Some( value ) => value,
-                None => fail fmt!("Undefined symbol %s",symbol)
+                None => Error( fmt!("Undefined symbol %s",symbol) )
             }
         }
         _ => {
@@ -370,25 +392,9 @@ fn eval( expression:Expression, environment:@Environment ) -> (Expression, @Envi
 
 fn main() {
     fn evaluate( expr:~str, env:Environment ) -> Option<Environment> {
-        let sent_expr = copy expr;
-
-        let (port, chan): (pipes::Port<Environment>, pipes::Chan<Environment>) = pipes::stream();
-        chan.send(env);
-        let result = do task::try |move port| {
-            let env = port.recv();
-            let (result, new_env) = eval( parse(sent_expr), @env );
-            (result, copy *new_env)
-        };
-        if result.is_ok() {
-            let successful_result = result.unwrap();
-            let evaluated_expression = successful_result.first();
-            let new_env = successful_result.second();
-            io::println( fmt!("%s -> %s", expr, evaluated_expression.to_str() ));
-            Some(new_env)
-        } else {
-            io::println( fmt!("%s gave an error.", expr) );
-            None
-        }
+        let (result, new_env) = eval( parse(expr), @env );
+        io::println( fmt!("%s -> %s", expr, result.to_str() ));
+        Some(*new_env)
     }
 
     let mut env = Environment::new_global_environment();

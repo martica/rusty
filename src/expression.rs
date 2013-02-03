@@ -4,7 +4,9 @@ pub enum Expression {
     Float(float),
     Symbol(~str),
     List(~[Expression]),
-    Proc(~fn(~[Expression],@Environment) -> Expression, (uint,uint))
+    Proc(~fn(~[Expression],@Environment) -> Expression, (uint,uint)),
+    Lambda(@Expression,~[Expression],@Environment),
+    Error(~str)
 } 
 
 macro_rules! operator_overload {
@@ -89,11 +91,13 @@ pub impl Expression {
                 }
             }
             Symbol(string) => { copy string }
+            Error(string) => { fmt!("Error: %s", string) }
             List(expressions) => {
                 let strings = expressions.map( | &expr | {expr.to_str()} );
                 ~"(" + strings.foldl(~"", |&x, &y| { x + ~" " + y } ).trim() + ~")"
             }
             Proc(_,x) => { fmt!("procedure: %s", x.to_str()) }
+            Lambda(_,_,_) => {~"Lambda"}
         }
     }
 }
@@ -107,6 +111,8 @@ impl Expression : cmp::Eq {
             Symbol(x) => match copy *other { Symbol(y) => x == y, _ => false },
             List(x) => match copy *other { List(y) => x == y, _ => false },
             Proc(_,x) => match copy *other { Proc(_,y) => x == y, _=> false },
+            Lambda(x,_,_) => match copy *other { Lambda(y,_,_) => x == y, _ => false },
+            Error(_) => false
             //_ => false
         }
     }

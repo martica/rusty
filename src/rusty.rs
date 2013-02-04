@@ -39,6 +39,11 @@ fn test_eval_to_error( expr:&str, reason:&str ) {
 }
 
 #[test]
+fn test_complicated_eval() {
+    test_eval( ~"(begin (define combine (lambda (f)    (lambda (x y)      (if (null? x) (quote ())          (f (list (car x) (car y))             ((combine f) (cdr x) (cdr y))))))) (define riff-shuffle (lambda (deck) (begin (define take (lambda (n seq) (if (<= n 0) (quote ()) (cons (car seq) (take (- n 1) (cdr seq)))))) (define drop (lambda (n seq) (if (<= n 0) seq (drop (- n 1) (cdr seq))))) (define mid (lambda (seq) (/ (length seq) 2))) ((combine append) (take (mid deck) deck) (drop (mid deck) deck))))) (riff-shuffle (list 1 2 3 4 5 6 7 8)))", ~"(1 5 2 6 3 7 4 8)" );
+}
+
+#[test]
 fn test_eval_empty_list_returns_itself() {
     test_eval( ~"()", ~"()" );
 }

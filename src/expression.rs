@@ -111,9 +111,17 @@ impl Expression : cmp::Eq {
             Symbol(x) => match copy *other { Symbol(y) => x == y, _ => false },
             List(x) => match copy *other { List(y) => x == y, _ => false },
             Proc(_,x) => match copy *other { Proc(_,y) => x == y, _=> false },
-            Lambda(x,_,_) => match copy *other { Lambda(y,_,_) => x == y, _ => false },
+            Lambda(a,b,c) => { 
+                match copy *other { 
+                    Lambda(x,y,z) => unsafe {
+                        ptr::ref_eq(a,x) &&
+                        b == y &&
+                        ptr::ref_eq(c,z)
+                    },
+                    _ => false
+                }
+            }
             Error(_) => false
-            //_ => false
         }
     }
 

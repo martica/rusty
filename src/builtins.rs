@@ -205,10 +205,11 @@ fn test_eqv_() {
     assert( Bool(true) == eqv__( ~[ List( ~[] ), List( ~[] ) ] ) );
     assert( Bool(false) == eqv__( ~[ List( ~[Int(1)] ), List( ~[] ) ] ) );
 
-    let proc = eval( parse("(lambda (x) (* x x))"), @Environment::new_global_environment() ).first();
-    let proc2 = eval( parse("(lambda (x) (* x x))"), @Environment::new_global_environment() ).first();
+    let env = @Environment::new_global_environment();
+    let proc = eval( parse("(lambda (x) (* x x))"), env ).first();
+    let proc2 = eval( parse("(lambda (x) (* x x))"), env ).first();
     assert( Bool(true) == eqv__( ~[ proc, proc ] ) );
-    //assert( Bool(false) == eqv__( ~[ proc, proc2 ] ) );
+    assert( Bool(false) == eqv__( ~[ proc, proc2 ] ) );
 }
 
 #[test]

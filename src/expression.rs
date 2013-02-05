@@ -13,8 +13,10 @@ macro_rules! operator_overload {
     ($operator_name:ident $function_name:ident) => (
         pub impl Expression: ops::$operator_name<Expression,Expression> {
             pure fn $function_name(&self, other:&Expression) -> Expression {
-                match (*self, *other) {
+                match (copy *self, copy *other) {
                     (Int(x), Int(y)) => Int(x.$function_name(&y)),
+                    (Error(x), _) => Error(copy x),
+                    (_, Error(x)) => Error(copy x),
                     _ => Float(self.to_float().$function_name(&other.to_float()))
                 }
             }
@@ -60,6 +62,13 @@ pub impl Expression {
             cast::reinterpret_cast(&function)
         };
         Proc( function, ptr )
+    }
+
+    pure fn is_error(&self) -> bool {
+        match *self {
+            Error(_) => true,
+            _ => false
+        }
     }
 
     pure fn to_float(&self) -> float {

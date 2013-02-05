@@ -39,17 +39,38 @@ math_function!(sub Int(0))
 math_function!(mul Int(1))
 math_function!(div Int(1))
 
-pub fn assert_min_number_of_args( function:~str, min:uint, args:~[Expression] ) {
-    if args.len() < min {
-        fail fmt!("Built-in function '%s' takes at least %u argument%s. It was called with %u '%s'", function, min, if min==1 {~""} else {~"s"}, args.len(), List(args).to_str());
+macro_rules! return_first_error {
+    () => {
+        for args.each() |&arg| {
+            if arg.is_error() {
+                return arg;
+            }
+        };
+    }
+}
+
+fn sometimes_ess( number:uint ) -> ~str {
+    if number == 1 {
+        ~""
+    } else {
+        ~"s"
+    }
+}
+
+macro_rules! assert_mininum_number_of_args {
+    ($function:expr $minimum:expr) => {
+        if args.len() < $minimum {
+            return Error(fmt!("Built-in function '%s' takes at least %u argument%s. It was called with %u '%s'", $function, $minimum, sometimes_ess($minimum), args.len(), List(args).to_str()));
+        };
     }
 }
 
 macro_rules! comparison_function {
     ($function:ident $name:expr) => {
         pub fn $function( args:~[Expression], _:@Environment ) -> Expression {
-            assert_min_number_of_args( $name, 2, copy args );
-            
+            assert_mininum_number_of_args!($name 2)
+            return_first_error!()
+
             let comparisons = vec::map2( args.init(), args.tail(),
                                          |a, b| {a.$function(b)});
             Bool(vec::foldl(true, comparisons, |x, &y| {x && y}))
@@ -63,6 +84,8 @@ comparison_function!(gt ~">")
 comparison_function!(ge ~">=")
 
 pub fn equals( args:~[Expression], _:@Environment) -> Expression {
+    return_first_error!()
+
     for args.tail().each() |&expr| {
         if expr != args.head() {
             return Bool(false);
@@ -71,42 +94,52 @@ pub fn equals( args:~[Expression], _:@Environment) -> Expression {
     return Bool(true);
 }
 
-pub fn assert_number_of_args( function:~str, min:uint, max:uint, args:~[Expression] ) {
-    if args.len() > max || args.len() < min {
-        if max == min {
-            fail fmt!("Built-in function '%s' takes only %u argument%s. It was called with %u '%s'", function, max, if max==1 {~""} else {~"s"}, args.len(), List(args).to_str());
-        } else {
-            fail fmt!("Built-in function '%s' takes between %u and %u arguments. It was called with %u '%s'", function, min, max, args.len(), List(args).to_str());
-        } 
+macro_rules! assert_arg_count_range {
+    ($function:expr $minimum:expr $maximum:expr) => {
+        if args.len() > $maximum || args.len() < $minimum {
+            let head = fmt!("Built-in function '%s' takes", $function);
+            let middle = if $minimum == $maximum {
+                fmt!("only %u argument%s.", $minimum, sometimes_ess($minimum))
+            } else {
+                fmt!("betwen %u and %u arguments.", $minimum, $maximum)
+            };
+            let tail = fmt!("It was called with %u '%s'.", args.len(), List(args).to_str());
+
+            return Error( fmt!("%s %s %s", head, middle, tail) );
+        }
     }
 }
 
 pub fn not( args:~[Expression], _:@Environment) -> Expression {
-    assert_number_of_args( ~"not", 1, 1, copy args );
+    return_first_error!()
+    assert_arg_count_range!( ~"not" 1 1 )
 
     return Bool(!args[0].to_bool());
 }
 
 pub fn car( args:~[Expression], _:@Environment) -> Expression {
-    assert_number_of_args( ~"car", 1, 1, copy args );
+    return_first_error!()
+    assert_arg_count_range!( ~"car" 1 1 )
 
     match copy args[0] {
         List(list) => list.head(),
-        _ => fail fmt!("Built-in function 'car' requires a list argument. It was called with %s", args[0].to_str())
+        _ => Error( fmt!("Built-in function 'car' requires a list argument. It was called with %s", args[0].to_str()) )
     }
 }
 
 pub fn cdr( args:~[Expression], _:@Environment) -> Expression {
-    assert_number_of_args( ~"cdr", 1, 1, copy args );
+    return_first_error!()
+    assert_arg_count_range!( ~"cdr" 1 1 )
 
     match copy args[0] {
         List(list) => List(list.tail()),
-        _ => fail fmt!("Built-in function 'cdr' requires a list argument. It was called with %s", args[0].to_str())
+        _ => Error( fmt!("Built-in function 'cdr' requires a list argument. It was called with %s", args[0].to_str()) )
     }
 }
 
 pub fn cons( args:~[Expression], _:@Environment) -> Expression {
-    assert_number_of_args( ~"cons", 2, 2, copy args );
+    return_first_error!()
+    assert_arg_count_range!( ~"cons" 2 2 )
 
     match copy args[1] {
         List(list) => List( ~[args[0]] + list ),
@@ -115,7 +148,8 @@ pub fn cons( args:~[Expression], _:@Environment) -> Expression {
 }
 
 pub fn append( args:~[Expression], _:@Environment) -> Expression {
-    assert_number_of_args( ~"append", 2, 2, copy args );
+    return_first_error!()
+    assert_arg_count_range!( ~"append" 2 2 )
 
     match copy args[0] {
         List(list1) => {
@@ -124,28 +158,31 @@ pub fn append( args:~[Expression], _:@Environment) -> Expression {
                 x => List( list1 + ~[x] )
             }
         }
-        _ => fail fmt!("Built-in function 'append' requires a list as the first arguments. It was called with %s", List(args).to_str())
+        _ => Error( fmt!("Built-in function 'append' requires a list as the first arguments. It was called with %s", List(args).to_str()) )
     }
 }
 
 pub fn length( args:~[Expression], _:@Environment) -> Expression {
-    assert_number_of_args( ~"length", 1, 1, copy args );
+    return_first_error!()
+    assert_arg_count_range!( ~"length" 1 1 )
     
     match copy args[0] {
         List(list) => Int(list.len() as int),
-        _ => fail fmt!("Built-in function 'append' requires a list argument. It was called with %s", List(args).to_str())
+        _ => Error( fmt!("Built-in function 'length' requires a list argument. It was called with %s", List(args).to_str()) )
     }
 }
 
 pub fn equal_( args:~[Expression], _:@Environment ) -> Expression {
-    assert_number_of_args( ~"equal?", 2, 2, copy args );
+    return_first_error!()
+    assert_arg_count_range!( ~"equal?" 2 2 )
     
     Bool(args[0] == args[1])
 }
 
 
 pub fn symbol_( args:~[Expression], _:@Environment) -> Expression {
-    assert_number_of_args( ~"symbol?", 1, 1, copy args );
+    return_first_error!()
+    assert_arg_count_range!( ~"symbol?" 1 1 )
     
     match args[0] {
         Symbol(_) => Bool(true),
@@ -154,7 +191,8 @@ pub fn symbol_( args:~[Expression], _:@Environment) -> Expression {
 }
 
 pub fn list_( args:~[Expression], _:@Environment) -> Expression {
-    assert_number_of_args( ~"list?", 1, 1, copy args );
+    return_first_error!()
+    assert_arg_count_range!( ~"list?" 1 1 )
     
     match args[0] {
         List(_) => Bool(true),
@@ -163,7 +201,8 @@ pub fn list_( args:~[Expression], _:@Environment) -> Expression {
 }
 
 pub fn null_( args:~[Expression], _:@Environment) -> Expression {
-    assert_number_of_args( ~"null?", 1, 1, copy args );
+    return_first_error!()
+    assert_arg_count_range!( ~"null?" 1 1 )
     
     match copy args[0] {
         List(list) => Bool(list.len() == 0),
@@ -172,17 +211,20 @@ pub fn null_( args:~[Expression], _:@Environment) -> Expression {
 }
 
 pub fn list( args:~[Expression], _:@Environment) -> Expression {
+    return_first_error!()
     List(args)
 }
 
 pub fn eq_( args:~[Expression], _:@Environment) -> Expression {
-    assert_number_of_args( ~"eq?", 2, 2, copy args );
+    return_first_error!()
+    assert_arg_count_range!( ~"eq?" 2 2 )
 
     Bool( args[0] == args[1] )
 }
 
 pub fn eqv_( args:~[Expression], _env:@Environment) -> Expression {
-    assert_number_of_args( ~"eq?", 2, 2, copy args );
+    return_first_error!()
+    assert_arg_count_range!( ~"eqv?" 2 2 )
 
     eq_( args, _env )
 }

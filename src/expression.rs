@@ -17,7 +17,15 @@ macro_rules! operator_overload {
                     (Int(x), Int(y)) => Int(x.$function_name(&y)),
                     (Error(x), _) => Error(copy x),
                     (_, Error(x)) => Error(copy x),
-                    _ => Float(self.to_float().$function_name(&other.to_float()))
+                    _ => {
+                        if !self.is_number() {
+                            Error(fmt!("%s was given where a number was expected", self.to_str()))
+                        } else if !other.is_number() {
+                            Error(fmt!("%s was given where a number was expected", other.to_str()))
+                        } else {
+                            Float(self.to_float().$function_name(&other.to_float()))
+                        }
+                    }
                 }
             }
         }
@@ -71,11 +79,18 @@ pub impl Expression {
         }
     }
 
+    pure fn is_number(&self) -> bool {
+        match *self {
+            Int(_) | Float(_) => true,
+            _ => false
+        }
+    }
+
     pure fn to_float(&self) -> float {
         match *self {
             Int( number ) => number as float,
             Float( number ) => number,
-            _ => fail fmt!("Expected number: %s used in a numeric context", self.to_str())
+            _ => float::NaN
         }
     }
 
@@ -137,6 +152,11 @@ impl Expression : cmp::Eq {
     pure fn ne(&self, other:&Expression) -> bool {
         return !(*self).eq(other);
     }
+}
+
+#[test]
+fn test_that_adding_non_numbers_gives_an_error() {
+    assert (Int(1) + Symbol(~"a")).is_error()
 }
 
 #[test]

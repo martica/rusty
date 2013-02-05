@@ -65,11 +65,22 @@ macro_rules! assert_mininum_number_of_args {
     }
 }
 
+macro_rules! ensure_arguments_are_numbers {
+    () => {
+        for args.each() |&arg| {
+            if !arg.is_number() {
+                return Error( fmt!("%s was given where a number was expected", arg.to_str()) );
+            }
+        };
+    }
+}
+
 macro_rules! comparison_function {
     ($function:ident $name:expr) => {
         pub fn $function( args:~[Expression], _:@Environment ) -> Expression {
             assert_mininum_number_of_args!($name 2)
             return_first_error!()
+            ensure_arguments_are_numbers!()
 
             let comparisons = vec::map2( args.init(), args.tail(),
                                          |a, b| {a.$function(b)});

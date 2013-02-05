@@ -138,13 +138,16 @@ fn read( tokens:~[~str] ) -> Expression {
                     accumulator.push(expr);
                     remainder = new_remainder
                 }
-                // remove the final close paren, this will fail if the parens
-                // aren't closed properly due to an assert in remove
-                remainder.remove(0);
-                (List(accumulator), remainder)
+                if remainder.len() == 0 {
+                    (Error(~"Unexpected end of input (mismatched parens?)"), remainder)
+                } else {
+                    // remove the close paren
+                    remainder.remove(0);
+                    (List(accumulator), remainder)
+                }
             }
             ~")" => fail,
-                _ => (atom(token), remainder)
+            _ => (atom(token), remainder)
         }
     }
 

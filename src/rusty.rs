@@ -353,16 +353,6 @@ fn eval( expression:Expression, environment:@Environment ) -> (Expression, @Envi
             [_, List(param_names), expression] => {
                 Lambda(@expression, param_names, env)
             }
-//            new_proc( |param_values, _| { 
-//                    let local_env = @Environment::new( copy *env );
-//                    for vec::zip(copy param_names, param_values).each |param| {
-//                        match param.first() {
-//                            Symbol(key) => local_env.define( key, param.second() ),
-//                            _ => return Error( ~"lambda params list must be list of symbols" )
-//                        }
-//                    }
-//                    eval(copy expression, local_env).first()
-//                } ),
             _ => Error( fmt!("Syntax Error: lambda requires 2 arguments, got \"%u\"", expressions.len()-1 ) )
         }
     }

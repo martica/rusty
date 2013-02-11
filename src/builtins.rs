@@ -1,7 +1,6 @@
 /*
  * Built-in method definitions for scheme
  * 
- * Done:
  * +, -, *, / (works on lists of numbers)
  * =, >, <, >=, <= (works on list of numbers)
  * not (works on single argument)
@@ -9,16 +8,7 @@
  * list?, null?, symbol? (works on single argument)
  * cons, car, cdr, append
  * equal?
- *
- * Coming:
  * eq?
- *
- *    {'+':op.add, '-':op.sub, '*':op.mul, '/':op.div, 'not':op.not_,
-       '>':op.gt, '<':op.lt, '>=':op.ge, '<=':op.le, '=':op.eq, 
-       'equal?':op.eq, 'eq?':op.is_, 'length':len, 'cons':lambda x,y:[x]+y,
-       'car':lambda x:x[0],'cdr':lambda x:x[1:], 'append':op.add,  
-       'list':lambda *x:list(x), 'list?': lambda x:isa(x,list), 
-       'null?':lambda x:x==[], 'symbol?':lambda x: isa(x, Symbol)})
  *
  */
 

@@ -333,7 +333,7 @@ fn eval( expression:Expression, environment:@Environment ) -> (Expression, @Envi
     fn proc(expressions:~[Expression], environment:@Environment) -> Expression {
         let exprs = expressions.map(|&expr| eval(expr, environment).first());
         match exprs.head() {
-            Proc( procedure, _ ) => procedure( exprs.tail(), environment ),
+            Proc( procedure, _ ) => procedure( exprs.tail() ),
             Lambda( expr, variables, env ) => {
                 let local_env = @Environment::new( *env );
                 for vec::zip(copy variables, exprs.tail()).each |param| {

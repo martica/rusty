@@ -14,7 +14,7 @@
 
 macro_rules! math_function {
     ($function:ident $identity:expr) => {
-        pub fn $function( args:~[Expression], _:@Environment) -> Expression {
+        pub fn $function( args:~[Expression]) -> Expression {
             match args {
                 [] => $identity,
                 [head] => vec::foldl($identity, ~[head], |x, y| {x.$function(y)}),
@@ -67,7 +67,7 @@ macro_rules! ensure_arguments_are_numbers {
 
 macro_rules! comparison_function {
     ($function:ident $name:expr) => {
-        pub fn $function( args:~[Expression], _:@Environment ) -> Expression {
+        pub fn $function( args:~[Expression] ) -> Expression {
             assert_mininum_number_of_args!($name 2)
             return_first_error!()
             ensure_arguments_are_numbers!()
@@ -84,7 +84,7 @@ comparison_function!(le ~"<=")
 comparison_function!(gt ~">")
 comparison_function!(ge ~">=")
 
-pub fn equals( args:~[Expression], _:@Environment) -> Expression {
+pub fn equals( args:~[Expression]) -> Expression {
     return_first_error!()
 
     for args.tail().each() |&expr| {
@@ -111,14 +111,14 @@ macro_rules! assert_arg_count_range {
     }
 }
 
-pub fn not( args:~[Expression], _:@Environment) -> Expression {
+pub fn not( args:~[Expression]) -> Expression {
     return_first_error!()
     assert_arg_count_range!( ~"not" 1 1 )
 
     return Bool(!args[0].to_bool());
 }
 
-pub fn car( args:~[Expression], _:@Environment) -> Expression {
+pub fn car( args:~[Expression]) -> Expression {
     return_first_error!()
     assert_arg_count_range!( ~"car" 1 1 )
 
@@ -128,7 +128,7 @@ pub fn car( args:~[Expression], _:@Environment) -> Expression {
     }
 }
 
-pub fn cdr( args:~[Expression], _:@Environment) -> Expression {
+pub fn cdr( args:~[Expression]) -> Expression {
     return_first_error!()
     assert_arg_count_range!( ~"cdr" 1 1 )
 
@@ -138,7 +138,7 @@ pub fn cdr( args:~[Expression], _:@Environment) -> Expression {
     }
 }
 
-pub fn cons( args:~[Expression], _:@Environment) -> Expression {
+pub fn cons( args:~[Expression]) -> Expression {
     return_first_error!()
     assert_arg_count_range!( ~"cons" 2 2 )
 
@@ -148,7 +148,7 @@ pub fn cons( args:~[Expression], _:@Environment) -> Expression {
     }
 }
 
-pub fn append( args:~[Expression], _:@Environment) -> Expression {
+pub fn append( args:~[Expression]) -> Expression {
     return_first_error!()
     assert_arg_count_range!( ~"append" 2 2 )
 
@@ -163,7 +163,7 @@ pub fn append( args:~[Expression], _:@Environment) -> Expression {
     }
 }
 
-pub fn length( args:~[Expression], _:@Environment) -> Expression {
+pub fn length( args:~[Expression]) -> Expression {
     return_first_error!()
     assert_arg_count_range!( ~"length" 1 1 )
     
@@ -173,7 +173,7 @@ pub fn length( args:~[Expression], _:@Environment) -> Expression {
     }
 }
 
-pub fn equal_( args:~[Expression], _:@Environment ) -> Expression {
+pub fn equal_( args:~[Expression] ) -> Expression {
     return_first_error!()
     assert_arg_count_range!( ~"equal?" 2 2 )
     
@@ -181,7 +181,7 @@ pub fn equal_( args:~[Expression], _:@Environment ) -> Expression {
 }
 
 
-pub fn symbol_( args:~[Expression], _:@Environment) -> Expression {
+pub fn symbol_( args:~[Expression]) -> Expression {
     return_first_error!()
     assert_arg_count_range!( ~"symbol?" 1 1 )
     
@@ -191,7 +191,7 @@ pub fn symbol_( args:~[Expression], _:@Environment) -> Expression {
     }
 }
 
-pub fn list_( args:~[Expression], _:@Environment) -> Expression {
+pub fn list_( args:~[Expression]) -> Expression {
     return_first_error!()
     assert_arg_count_range!( ~"list?" 1 1 )
     
@@ -201,7 +201,7 @@ pub fn list_( args:~[Expression], _:@Environment) -> Expression {
     }
 }
 
-pub fn null_( args:~[Expression], _:@Environment) -> Expression {
+pub fn null_( args:~[Expression]) -> Expression {
     return_first_error!()
     assert_arg_count_range!( ~"null?" 1 1 )
     
@@ -211,29 +211,29 @@ pub fn null_( args:~[Expression], _:@Environment) -> Expression {
     }
 }
 
-pub fn list( args:~[Expression], _:@Environment) -> Expression {
+pub fn list( args:~[Expression]) -> Expression {
     return_first_error!()
     List(args)
 }
 
-pub fn eq_( args:~[Expression], _:@Environment) -> Expression {
+pub fn eq_( args:~[Expression]) -> Expression {
     return_first_error!()
     assert_arg_count_range!( ~"eq?" 2 2 )
 
     Bool( args[0] == args[1] )
 }
 
-pub fn eqv_( args:~[Expression], _env:@Environment) -> Expression {
+pub fn eqv_( args:~[Expression]) -> Expression {
     return_first_error!()
     assert_arg_count_range!( ~"eqv?" 2 2 )
 
-    eq_( args, _env )
+    eq_( args )
 }
 
 #[test]
 fn test_eqv_() {
     fn eqv__( args:~[Expression] ) -> Expression {
-        eqv_( args, @Environment::new_global_environment() )
+        eqv_( args )
     }
 
     assert( Bool(true) == eqv__( ~[ Bool(true), Bool(true) ] ) );
@@ -279,7 +279,7 @@ fn test_list() {
     test_eval( ~"(length (list 1 2))", ~"2" );
 }
 
-pub fn builtins() -> ~[(~str,~fn(~[Expression], @Environment) -> Expression)] {
+pub fn builtins() -> ~[(~str,~fn(~[Expression]) -> Expression)] {
     ~[ (~"+", add), (~"-", sub), (~"*", mul), (~"/", div),
        (~"<", lt), (~"<=", le), (~">", gt), (~">=", ge),
        (~"=", equals), (~"not", not),

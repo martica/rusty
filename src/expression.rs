@@ -4,7 +4,7 @@ pub enum Expression {
     Float(float),
     Symbol(~str),
     List(~[Expression]),
-    Proc(~fn(~[Expression],@Environment) -> Expression, (uint,uint)),
+    Proc(~fn(~[Expression]) -> Expression, (uint,uint)),
     Lambda(@Expression,~[Expression],@Environment),
     Error(~str)
 } 
@@ -65,7 +65,7 @@ pub impl Expression: cmp::Ord {
 }
 
 pub impl Expression {
-    static fn new_proc( function:~fn(~[Expression],@Environment) -> Expression) -> Expression {
+    static fn new_proc( function:~fn(~[Expression]) -> Expression) -> Expression {
         let ptr:(uint,uint) = unsafe {
             cast::reinterpret_cast(&function)
         };
